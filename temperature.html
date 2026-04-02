@@ -8,62 +8,754 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="temperature.css" />
+    <style>
+        /* ============================================
+           TEMPERATURE DASHBOARD - Embedded CSS
+           Theme: White base, Purple accent, Clean UI
+           ============================================ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --purple: #7c3aed;
+            --purple-light: #a78bfa;
+            --purple-dark: #5b21b6;
+            --purple-soft: #ede9fe;
+            --purple-mid: #ddd6fe;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+            --red: #ef4444;
+            --orange: #f97316;
+            --yellow: #f59e0b;
+            --green: #22c55e;
+            --blue: #3b82f6;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.07);
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            min-height: 100vh;
+        }
+
+        /* TOP NAV */
+        .topnav {
+            background: var(--white);
+            border-bottom: 1.5px solid var(--gray-100);
+            padding: 0 1.5rem;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-logo {
+            width: 34px;
+            height: 34px;
+            background: var(--purple);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-logo svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .nav-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .nav-title span {
+            color: var(--purple);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn.active {
+            background: var(--purple);
+            color: white;
+        }
+
+        .nav-btn.inactive {
+            background: transparent;
+            color: var(--gray-500);
+        }
+
+        .nav-btn.inactive:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-100);
+            padding: 8px 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-500);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-300);
+            flex-shrink: 0;
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        .status-dot.disconnected {
+            background: var(--red);
+        }
+
+        .status-dot.connecting {
+            background: var(--yellow);
+            animation: blink 1.2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--purple-soft);
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--purple);
+        }
+
+        .live-badge-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--purple);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* MAIN LAYOUT */
+        .main-wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .page-title span {
+            color: var(--purple);
+        }
+
+        .page-subtitle {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        /* CARD */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            border: 1.5px solid var(--gray-100);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title-sm {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* WEATHER HERO */
+        .weather-hero-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .weather-main {
+            flex: 2;
+        }
+
+        .weather-loc {
+            font-size: 0.85rem;
+            color: var(--purple);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .weather-temp-display {
+            font-family: 'Syne', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        .weather-temp-display sup {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--gray-400);
+        }
+
+        .weather-condition {
+            font-size: 1rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+        }
+
+        .weather-updated {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 0.25rem;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .weather-stats {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .weather-stat {
+            text-align: center;
+            min-width: 90px;
+        }
+
+        .weather-stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-400);
+            display: block;
+        }
+
+        .weather-stat-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* GAUGES */
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .gauge-card-body {
+            padding: 1.25rem;
+            display: flex;
+            gap: 1.25rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .gauge-ring-wrap {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+        }
+
+        .gauge-ring-wrap svg {
+            transform: rotate(-90deg);
+            width: 90px;
+            height: 90px;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--gray-100);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.8s ease;
+        }
+
+        .gauge-fill.temp {
+            stroke: var(--orange);
+        }
+
+        .gauge-fill.hum {
+            stroke: var(--blue);
+        }
+
+        .gauge-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-val {
+            font-family: 'DM Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        .gauge-unit {
+            font-size: 0.6rem;
+            color: var(--gray-400);
+        }
+
+        .gauge-info {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .gauge-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .gauge-sublabel {
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            margin: 4px 0 8px;
+        }
+
+        .gauge-bar-wrap {
+            background: var(--gray-100);
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+            margin: 8px 0 4px;
+        }
+
+        .gauge-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .gauge-bar-fill.temp {
+            background: var(--orange);
+        }
+
+        .gauge-bar-fill.hum {
+            background: var(--blue);
+        }
+
+        .gauge-range {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--gray-400);
+        }
+
+        /* MAP */
+        .map-col {
+            position: relative;
+        }
+
+        .map-frame {
+            width: 100%;
+            height: 300px;
+            border: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+
+        #map-placeholder {
+            height: 300px;
+            background: var(--gray-50);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 8px 14px;
+            border-radius: 40px;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .map-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        .map-chip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .map-chip-dot.orange {
+            background: var(--orange);
+        }
+
+        .map-chip-dot.blue {
+            background: var(--blue);
+        }
+
+        /* RECOMMENDATIONS */
+        .rec-body {
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .rec-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--gray-50);
+            border-left: 3px solid;
+        }
+
+        .rec-item.warning {
+            border-left-color: var(--red);
+            background: #fef2f2;
+        }
+
+        .rec-item.caution {
+            border-left-color: var(--yellow);
+            background: #fffbeb;
+        }
+
+        .rec-item.good {
+            border-left-color: var(--green);
+            background: #f0fdf4;
+        }
+
+        .rec-item.info {
+            border-left-color: var(--blue);
+            background: #eff6ff;
+        }
+
+        .rec-item.purple {
+            border-left-color: var(--purple);
+            background: var(--purple-soft);
+        }
+
+        .rec-icon {
+            font-size: 1.4rem;
+        }
+
+        .rec-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--gray-800);
+        }
+
+        .rec-desc {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        /* CHART */
+        .feed-col .card-header {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .chart-wrap {
+            padding: 1rem;
+            height: 280px;
+            position: relative;
+        }
+
+        .chart-canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* LOGS TABLE */
+        .logs-col .log-table-wrap {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .log-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .log-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .log-table .temp-val {
+            font-family: 'DM Mono', monospace;
+            color: var(--orange);
+            font-weight: 500;
+        }
+
+        .log-table .hum-val {
+            font-family: 'DM Mono', monospace;
+            color: var(--blue);
+            font-weight: 500;
+        }
+
+        .log-empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-400);
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            border-radius: 7px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1.5px solid var(--gray-200);
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-sm:hover {
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+
+        /* offline overlay / hide data */
+        .offline-blur {
+            opacity: 0.6;
+            filter: grayscale(0.2);
+            pointer-events: none;
+        }
+
+        .offline-banner {
+            background: var(--red);
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: none;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .offline-banner.show {
+            display: block;
+        }
+
+        @media (max-width: 700px) {
+            .gauge-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .weather-stats {
+                margin-top: 1rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-    <!-- TOP NAV -->
     <nav class="topnav">
-        <a href="index.html" class="nav-brand">
-            <div class="nav-logo">
-                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <a href="#" class="nav-brand">
+            <div class="nav-logo"><svg viewBox="0 0 20 20" fill="none">
                     <rect x="5" y="1" width="10" height="18" rx="3" stroke="white" stroke-width="1.5" />
                     <circle cx="10" cy="6" r="1.8" fill="white" />
                     <circle cx="10" cy="10" r="1.8" fill="white" opacity="0.5" />
                     <circle cx="10" cy="14" r="1.8" fill="white" opacity="0.25" />
-                </svg>
-            </div>
+                </svg></div>
             <span class="nav-title">IoT <span>Center</span></span>
         </a>
         <div class="nav-links">
             <a href="traffic.html" class="nav-btn inactive">Traffic Light</a>
-            <a href="temperature.html" class="nav-btn active">Temp & Humidity</a>
+            <a href="#" class="nav-btn active">Temp & Humidity</a>
         </div>
     </nav>
 
-    <!-- STATUS BAR -->
     <div class="status-bar">
         <div class="status-item">
-            <div class="status-dot connecting" id="sb-wifi-dot"></div>
-            <span class="status-label">Wi-Fi:</span>
-            <span id="sb-wifi-text">Checking...</span>
+            <div class="status-dot connecting" id="sb-wifi-dot"></div><span class="status-label">Wi-Fi:</span><span
+                id="sb-wifi-text">Checking...</span>
         </div>
         <div class="status-item">
-            <div class="status-dot connecting" id="sb-db-dot"></div>
-            <span class="status-label">Supabase:</span>
-            <span id="sb-db-text">Connecting...</span>
+            <div class="status-dot connecting" id="sb-db-dot"></div><span class="status-label">Supabase:</span><span
+                id="sb-db-text">Connecting...</span>
         </div>
         <div class="status-item">
-            <div class="status-dot" id="sb-esp-dot"></div>
-            <span class="status-label">ESP32:</span>
-            <span id="sb-esp-text">Waiting...</span>
+            <div class="status-dot" id="sb-esp-dot"></div><span class="status-label">ESP32:</span><span
+                id="sb-esp-text">Waiting...</span>
         </div>
         <div class="status-item" style="margin-left:auto;">
             <div class="live-badge">
-                <div class="live-badge-dot"></div>
-                Updates every 5s
-            </div>
-            &nbsp;
-            <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)"
+                <div class="live-badge-dot"></div>Updates every 5s
+            </div>&nbsp;<span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)"
                 id="sb-time">--:--:--</span>
         </div>
     </div>
 
-    <!-- MAIN -->
     <div class="main-wrap">
-
-        <!-- PAGE HEADER -->
+        <div class="offline-banner" id="offline-banner">⚠️ OFFLINE MODE — No live data. Please check your internet
+            connection.</div>
         <div class="page-header">
             <div>
                 <div class="page-title">Weather <span>Monitor</span></div>
@@ -71,59 +763,43 @@
             </div>
         </div>
 
-        <!-- WEATHER HERO -->
-        <div class="card weather-hero">
+        <div class="card weather-hero" id="weather-card">
             <div class="weather-hero-body">
                 <div class="weather-main">
                     <div class="weather-loc" id="w-location">Detecting location...</div>
-                    <div class="weather-temp-display">
-                        <span id="w-temp">--</span><sup>°C</sup>
-                    </div>
+                    <div class="weather-temp-display"><span id="w-temp">--</span><sup>°C</sup></div>
                     <div class="weather-condition" id="w-condition">Awaiting sensor data...</div>
                     <div class="weather-updated" id="w-updated">Last updated: --</div>
                 </div>
                 <div class="weather-stats">
-                    <div class="weather-stat">
-                        <span class="weather-stat-label">Humidity</span>
-                        <span class="weather-stat-value" id="w-hum">-- <span
-                                style="font-size:0.8rem;opacity:0.7">%</span></span>
-                    </div>
-                    <div class="weather-stat">
-                        <span class="weather-stat-label">Heat Index</span>
-                        <span class="weather-stat-value" id="w-heat">-- <span
-                                style="font-size:0.8rem;opacity:0.7">°C</span></span>
-                    </div>
-                    <div class="weather-stat">
-                        <span class="weather-stat-label">Dew Point</span>
-                        <span class="weather-stat-value" id="w-dew">-- <span
-                                style="font-size:0.8rem;opacity:0.7">°C</span></span>
-                    </div>
+                    <div class="weather-stat"><span class="weather-stat-label">Humidity</span><span
+                            class="weather-stat-value" id="w-hum">-- <span
+                                style="font-size:0.8rem;opacity:0.7">%</span></span></div>
+                    <div class="weather-stat"><span class="weather-stat-label">Heat Index</span><span
+                            class="weather-stat-value" id="w-heat">-- <span
+                                style="font-size:0.8rem;opacity:0.7">°C</span></span></div>
+                    <div class="weather-stat"><span class="weather-stat-label">Dew Point</span><span
+                            class="weather-stat-value" id="w-dew">-- <span
+                                style="font-size:0.8rem;opacity:0.7">°C</span></span></div>
                 </div>
             </div>
         </div>
 
-        <!-- TEMP GAUGE -->
         <div class="gauge-grid">
             <div class="card">
-                <div class="card-header">
-                    <span class="card-title-sm">Temperature</span>
-                    <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)">DHT11 Pin
-                        15</span>
-                </div>
+                <div class="card-header"><span class="card-title-sm">Temperature</span><span
+                        style="font-size:0.7rem;color:var(--gray-400)">DHT11 Pin 15</span></div>
                 <div class="gauge-card-body">
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 80 80">
+                    <div class="gauge-ring-wrap"><svg viewBox="0 0 80 80">
                             <circle class="gauge-bg" cx="40" cy="40" r="35" />
                             <circle class="gauge-fill temp" id="gauge-temp-ring" cx="40" cy="40" r="35" />
                         </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-val" id="gauge-temp-val">--</span>
-                            <span class="gauge-unit">°C</span>
-                        </div>
+                        <div class="gauge-center"><span class="gauge-val" id="gauge-temp-val">--</span><span
+                                class="gauge-unit">°C</span></div>
                     </div>
                     <div class="gauge-info">
                         <div class="gauge-title">Ambient Temperature</div>
-                        <div class="gauge-sublabel" id="temp-category">Waiting for data...</div>
+                        <div class="gauge-sublabel" id="temp-category">Waiting...</div>
                         <div class="gauge-bar-wrap">
                             <div class="gauge-bar-fill temp" id="gauge-temp-bar" style="width:0%"></div>
                         </div>
@@ -131,27 +807,20 @@
                     </div>
                 </div>
             </div>
-
             <div class="card">
-                <div class="card-header">
-                    <span class="card-title-sm">Humidity</span>
-                    <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)">DHT11 Pin
-                        15</span>
-                </div>
+                <div class="card-header"><span class="card-title-sm">Humidity</span><span
+                        style="font-size:0.7rem;color:var(--gray-400)">DHT11 Pin 15</span></div>
                 <div class="gauge-card-body">
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 80 80">
+                    <div class="gauge-ring-wrap"><svg viewBox="0 0 80 80">
                             <circle class="gauge-bg" cx="40" cy="40" r="35" />
                             <circle class="gauge-fill hum" id="gauge-hum-ring" cx="40" cy="40" r="35" />
                         </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-val" id="gauge-hum-val">--</span>
-                            <span class="gauge-unit">%RH</span>
-                        </div>
+                        <div class="gauge-center"><span class="gauge-val" id="gauge-hum-val">--</span><span
+                                class="gauge-unit">%RH</span></div>
                     </div>
                     <div class="gauge-info">
                         <div class="gauge-title">Relative Humidity</div>
-                        <div class="gauge-sublabel" id="hum-category">Waiting for data...</div>
+                        <div class="gauge-sublabel" id="hum-category">Waiting...</div>
                         <div class="gauge-bar-wrap">
                             <div class="gauge-bar-fill hum" id="gauge-hum-bar" style="width:0%"></div>
                         </div>
@@ -161,90 +830,74 @@
             </div>
         </div>
 
-        <!-- MAP -->
         <div class="card map-col">
-            <div class="card-header">
-                <span class="card-title-sm">Sensor Location</span>
-                <span style="font-size:0.75rem;color:var(--gray-400)" id="map-coords">Locating...</span>
-            </div>
+            <div class="card-header"><span class="card-title-sm">Sensor Location</span><span
+                    style="font-size:0.75rem;color:var(--gray-400)" id="map-coords">Locating...</span></div>
             <div id="map-placeholder"
                 style="height:300px;background:var(--gray-50);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.75rem;">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <svg width="40" height="40" viewBox="0 0 40 40">
                     <circle cx="20" cy="20" r="19" stroke="var(--gray-200)" stroke-width="2" />
                     <circle cx="20" cy="17" r="6" stroke="var(--purple)" stroke-width="2" />
                     <path d="M20 23v10M14 38h12" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" />
                 </svg>
                 <span style="font-size:0.85rem;color:var(--gray-400)">Allow location to show map</span>
                 <button onclick="requestLocation()"
-                    style="padding:7px 16px;background:var(--purple);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Get
+                    style="padding:7px 16px;background:var(--purple);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">Get
                     My Location</button>
             </div>
             <iframe id="map-iframe" class="map-frame" style="display:none;" allowfullscreen loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade"></iframe>
             <div class="map-overlay" id="map-overlay" style="display:none;">
                 <div class="map-chip">
-                    <div class="map-chip-dot" style="background:var(--orange)"></div>
-                    <span id="map-temp-chip">Temp: --°C</span>
+                    <div class="map-chip-dot" style="background:var(--orange)"></div><span id="map-temp-chip">Temp:
+                        --°C</span>
                 </div>
                 <div class="map-chip">
-                    <div class="map-chip-dot" style="background:var(--blue)"></div>
-                    <span id="map-hum-chip">Humidity: --%</span>
+                    <div class="map-chip-dot" style="background:var(--blue)"></div><span id="map-hum-chip">Humidity:
+                        --%</span>
                 </div>
                 <div class="map-chip">
-                    <div class="map-chip-dot" style="background:var(--purple)"></div>
-                    <span id="map-loc-chip">--</span>
+                    <div class="map-chip-dot" style="background:var(--purple)"></div><span id="map-loc-chip">--</span>
                 </div>
             </div>
         </div>
 
-        <!-- RECOMMENDATIONS -->
         <div class="card recommendation-col">
-            <div class="card-header">
-                <span class="card-title-sm">Recommendations</span>
-                <span style="font-size:0.75rem;color:var(--gray-400)">Based on live sensor data</span>
-            </div>
+            <div class="card-header"><span class="card-title-sm">Recommendations</span><span
+                    style="font-size:0.75rem;color:var(--gray-400)">Based on live sensor data</span></div>
             <div class="rec-body" id="rec-body">
                 <div class="rec-item info">
                     <div class="rec-icon">📡</div>
                     <div class="rec-content">
                         <div class="rec-title">Awaiting sensor data</div>
                         <div class="rec-desc">Connecting to Supabase... Recommendations will appear once data is
-                            received from the DHT11 sensor.</div>
+                            received.</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- LIVE FEED CHART -->
         <div class="card feed-col">
-            <div class="card-header">
-                <span class="card-title-sm">Live Feed</span>
+            <div class="card-header"><span class="card-title-sm">Live Feed</span>
                 <div class="live-badge">
-                    <div class="live-badge-dot"></div>
-                    5-second interval
+                    <div class="live-badge-dot"></div>5-second interval
                 </div>
             </div>
-            <div class="chart-wrap">
-                <canvas id="liveChart" class="chart-canvas"></canvas>
-            </div>
+            <div class="chart-wrap"><canvas id="liveChart" class="chart-canvas"></canvas></div>
         </div>
 
-        <!-- LOGS -->
         <div class="card logs-col">
-            <div class="card-header">
-                <span class="card-title-sm">Sensor Logs</span>
-                <div class="log-controls">
-                    <button class="btn-sm" onclick="exportLogs()">Export CSV</button>
-                    <button class="btn-sm" onclick="clearLogs()"
-                        style="color:var(--red);border-color:var(--red)">Clear</button>
-                </div>
+            <div class="card-header"><span class="card-title-sm">Sensor Logs</span>
+                <div class="log-controls"><button class="btn-sm" onclick="exportLogs()">Export CSV</button><button
+                        class="btn-sm" onclick="clearLogs()"
+                        style="color:var(--red);border-color:var(--red)">Clear</button></div>
             </div>
             <div class="log-table-wrap">
                 <table class="log-table">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
-                            <th>Temperature (°C)</th>
+                            <th>Temp (°C)</th>
                             <th>Humidity (%)</th>
                             <th>Heat Index (°C)</th>
                             <th>Condition</th>
@@ -260,491 +913,208 @@
                 </table>
             </div>
         </div>
-
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
     <script>
         // ============================================================
-        // SUPABASE CREDENTIALS — replace with your actual values
+        // SUPABASE CREDENTIALS
         // ============================================================
-        const SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';  // e.g. https://abcxyz.supabase.co
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';  // your anon public key
-
+        const SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';
         const TABLE_SENSOR = 'sensor_data';
-        let supabaseReady = false;
-        let pollInt = null;
-        let logRows = [];
-        let lastRowId = null;   // track last seen row to avoid duplicate log entries
 
-        // ============================================================
-        // SUPABASE HELPER
-        // ============================================================
+        let isOnline = navigator.onLine;
+        let supabaseOperational = false;
+        let pollInterval = null;
+        let logRows = [];
+        let lastRowId = null;
+        let liveChart = null;
+        let chartLabels = [], chartTemp = [], chartHum = [];
+
+        // DOM elements
+        const offlineBanner = document.getElementById('offline-banner');
+        const weatherCard = document.getElementById('weather-card');
+        const allDataContainers = ['.weather-hero', '.gauge-grid', '.recommendation-col', '.feed-col', '.logs-col'];
+
+        function setDataVisibility(visible) {
+            const cards = document.querySelectorAll('.weather-hero, .gauge-grid, .recommendation-col, .feed-col, .logs-col');
+            cards.forEach(card => {
+                if (visible) card.classList.remove('offline-blur');
+                else card.classList.add('offline-blur');
+            });
+            if (!visible) {
+                document.getElementById('w-temp').textContent = '--';
+                document.getElementById('w-hum').textContent = '--';
+                document.getElementById('w-heat').textContent = '--';
+                document.getElementById('w-dew').textContent = '--';
+                document.getElementById('w-condition').textContent = 'Offline — No data';
+                document.getElementById('gauge-temp-val').textContent = '--';
+                document.getElementById('gauge-hum-val').textContent = '--';
+                document.getElementById('temp-category').textContent = 'Offline';
+                document.getElementById('hum-category').textContent = 'Offline';
+            }
+        }
+
+        function updateOnlineStatus() {
+            isOnline = navigator.onLine;
+            if (!isOnline) {
+                offlineBanner.classList.add('show');
+                setStatus('wifi', 'disconnected', 'Offline');
+                setStatus('db', 'disconnected', 'No network');
+                setStatus('esp', 'disconnected', 'Unreachable');
+                supabaseOperational = false;
+                setDataVisibility(false);
+                if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            } else {
+                offlineBanner.classList.remove('show');
+                setStatus('wifi', 'connected', 'Online');
+                autoConnect();
+            }
+        }
+
         async function sbFetch(path, method = 'GET', body = null) {
-            const headers = {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_KEY,
-            };
-            const opts = { method, headers };
-            if (body) opts.body = JSON.stringify(body);
+            if (!isOnline) return null;
+            const headers = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
             try {
-                const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
-                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
                 return text ? JSON.parse(text) : null;
-            } catch (e) {
-                console.error('[Supabase]', e.message);
-                return null;
-            }
+            } catch (e) { console.warn('[Supabase]', e); return null; }
         }
 
-        // ============================================================
-        // AUTO-CONNECT ON PAGE LOAD — no button needed
-        // ============================================================
         async function autoConnect() {
-            setStatus('sb-wifi', 'connecting', 'Checking...');
-            setStatus('sb-db', 'connecting', 'Connecting...');
-
-            if (!navigator.onLine) {
-                setStatus('sb-wifi', 'disconnected', 'Offline');
-                setStatus('sb-db', 'disconnected', 'No network');
-                return;
-            }
-            setStatus('sb-wifi', 'connected', 'Online');
-
+            if (!isOnline) return;
+            setStatus('wifi', 'connected', 'Online');
+            setStatus('db', 'connecting', 'Connecting...');
             try {
-                const res = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_SENSOR + '?limit=1', {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-                });
-                if (res.status === 401 || res.status === 403) throw new Error('Invalid API key');
-                if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
-
-                supabaseReady = true;
-                setStatus('sb-db', 'connected', 'Connected');
-
-                await loadHistoricalLogs();
-                startPolling();
+                const test = await sbFetch(`${TABLE_SENSOR}?limit=1`);
+                if (test !== null || test === undefined) {
+                    supabaseOperational = true;
+                    setStatus('db', 'connected', 'Connected');
+                    setDataVisibility(true);
+                    await loadHistoricalLogs();
+                    startPolling();
+                } else throw new Error('No response');
             } catch (e) {
-                supabaseReady = false;
-                setStatus('sb-db', 'disconnected', 'Failed — ' + e.message);
+                supabaseOperational = false;
+                setStatus('db', 'disconnected', 'Connection failed');
+                setDataVisibility(false);
             }
         }
 
-        // ============================================================
-        // POLLING — every 5 seconds
-        // ============================================================
         function startPolling() {
-            if (pollInt) clearInterval(pollInt);
+            if (pollInterval) clearInterval(pollInterval);
             fetchLatest();
-            pollInt = setInterval(fetchLatest, 5000);
+            pollInterval = setInterval(fetchLatest, 5000);
         }
 
         async function fetchLatest() {
-            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.desc&limit=1');
+            if (!supabaseOperational || !isOnline) return;
+            const rows = await sbFetch(`${TABLE_SENSOR}?order=created_at.desc&limit=1`);
             if (!rows || rows.length === 0) return;
             const r = rows[0];
-
-            // Skip if same row as last poll
             if (r.id && r.id === lastRowId) return;
             lastRowId = r.id;
-
-            // ESP heartbeat from sensor timestamp
             const diff = Date.now() - new Date(r.created_at).getTime();
-            if (diff < 15000) {
-                setStatus('sb-esp', 'connected', 'Online');
-            } else if (diff < 60000) {
-                setStatus('sb-esp', 'connecting', 'Idle (' + Math.round(diff / 1000) + 's ago)');
-            } else {
-                setStatus('sb-esp', 'disconnected', 'Offline (' + Math.round(diff / 60000) + 'm ago)');
-            }
-
+            if (diff < 15000) setStatus('esp', 'connected', 'Online');
+            else if (diff < 60000) setStatus('esp', 'connecting', `Idle (${Math.round(diff / 1000)}s ago)`);
+            else setStatus('esp', 'disconnected', `Offline (${Math.round(diff / 60000)}m ago)`);
             updateUI(r.temperature, r.humidity, r.created_at);
             appendLogRow(r.temperature, r.humidity, r.created_at);
             addChartPoint(r.temperature, r.humidity);
         }
 
         async function loadHistoricalLogs() {
-            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.asc&limit=200');
+            if (!supabaseOperational) return;
+            const rows = await sbFetch(`${TABLE_SENSOR}?order=created_at.asc&limit=200`);
             if (!rows || rows.length === 0) return;
-
             const tbody = document.getElementById('log-tbody');
             tbody.innerHTML = '';
             logRows = [];
-
-            rows.forEach(r => {
-                logRows.push({ ts: r.created_at, temp: r.temperature, hum: r.humidity });
-                const tr = buildLogRow(r.temperature, r.humidity, r.created_at);
-                tbody.prepend(tr);
-            });
-
-            // Seed chart with last 30 points
+            rows.forEach(r => { logRows.push({ ts: r.created_at, temp: r.temperature, hum: r.humidity }); tbody.prepend(buildLogRow(r.temperature, r.humidity, r.created_at)); });
             rows.slice(-30).forEach(r => addChartPoint(r.temperature, r.humidity, false));
-            liveChart.update();
-
-            // Set last seen id
-            if (rows.length > 0) lastRowId = rows[rows.length - 1].id;
+            if (liveChart) liveChart.update();
+            if (rows.length) lastRowId = rows[rows.length - 1].id;
         }
 
-        // ============================================================
-        // UI UPDATE
-        // ============================================================
         function updateUI(temp, hum, ts) {
-            temp = parseFloat(temp);
-            hum = parseFloat(hum);
-
+            temp = parseFloat(temp); hum = parseFloat(hum);
             document.getElementById('w-temp').textContent = temp.toFixed(1);
             document.getElementById('w-hum').textContent = hum.toFixed(1);
-            document.getElementById('w-updated').textContent = 'Last updated: ' + formatTs(ts);
-
-            const hi = heatIndex(temp, hum);
-            const dp = dewPoint(temp, hum);
+            document.getElementById('w-updated').textContent = 'Last updated: ' + new Date(ts).toLocaleString();
+            const hi = heatIndex(temp, hum); const dp = dewPoint(temp, hum);
             document.getElementById('w-heat').textContent = hi.toFixed(1);
             document.getElementById('w-dew').textContent = dp.toFixed(1);
-
             const cond = getCondition(temp, hum);
             document.getElementById('w-condition').textContent = cond.label;
-
-            // Gauges
             document.getElementById('gauge-temp-val').textContent = temp.toFixed(1);
             document.getElementById('gauge-hum-val').textContent = hum.toFixed(0);
-
             const CIRC = 2 * Math.PI * 35;
-            const tempPct = Math.min(temp / 50, 1);
-            const humPct = Math.min(hum / 100, 1);
-
+            const tempPct = Math.min(temp / 50, 1); const humPct = Math.min(hum / 100, 1);
             document.getElementById('gauge-temp-ring').style.strokeDasharray = CIRC;
             document.getElementById('gauge-temp-ring').style.strokeDashoffset = CIRC * (1 - tempPct);
             document.getElementById('gauge-hum-ring').style.strokeDasharray = CIRC;
             document.getElementById('gauge-hum-ring').style.strokeDashoffset = CIRC * (1 - humPct);
-
             document.getElementById('gauge-temp-bar').style.width = (tempPct * 100) + '%';
             document.getElementById('gauge-hum-bar').style.width = (humPct * 100) + '%';
-
             document.getElementById('temp-category').textContent = tempCategory(temp);
             document.getElementById('hum-category').textContent = humCategory(hum);
-
             document.getElementById('map-temp-chip').textContent = 'Temp: ' + temp.toFixed(1) + '°C';
             document.getElementById('map-hum-chip').textContent = 'Humidity: ' + hum.toFixed(0) + '%';
-
             updateRecommendations(temp, hum);
         }
 
-        // ============================================================
-        // WEATHER CALCULATIONS
-        // ============================================================
-        function heatIndex(T, H) {
-            if (T < 27) return T;
-            return -8.78469475556 + 1.61139411 * T + 2.33854883889 * H
-                - 0.14611605 * T * H - 0.012308094 * T * T - 0.0164248277778 * H * H
-                + 0.002211732 * T * T * H + 0.00072546 * T * H * H - 0.000003582 * T * T * H * H;
-        }
+        function heatIndex(T, H) { if (T < 27) return T; return -8.78469475556 + 1.61139411 * T + 2.33854883889 * H - 0.14611605 * T * H - 0.012308094 * T * T - 0.0164248277778 * H * H + 0.002211732 * T * T * H + 0.00072546 * T * H * H - 0.000003582 * T * T * H * H; }
+        function dewPoint(T, H) { const a = 17.27, b = 237.7; const alpha = (a * T) / (b + T) + Math.log(H / 100); return (b * alpha) / (a - alpha); }
+        function getCondition(t, h) { if (t >= 35 && h >= 70) return { label: 'Extreme Heat & Humidity' }; if (t >= 35) return { label: 'Very Hot' }; if (t >= 30 && h >= 70) return { label: 'Hot & Humid' }; if (t >= 30) return { label: 'Hot' }; if (t >= 25 && h >= 60) return { label: 'Warm & Muggy' }; if (t >= 20 && t < 28 && h >= 40 && h < 70) return { label: 'Comfortable' }; if (t < 15) return { label: 'Cold' }; if (h > 80) return { label: 'Very Humid' }; if (h < 20) return { label: 'Very Dry' }; return { label: 'Moderate' }; }
+        function tempCategory(t) { if (t >= 40) return 'Extremely hot'; if (t >= 35) return 'Very hot'; if (t >= 30) return 'Hot'; if (t >= 25) return 'Warm'; if (t >= 20) return 'Comfortable'; if (t >= 15) return 'Mild'; if (t >= 10) return 'Cool'; return 'Cold'; }
+        function humCategory(h) { if (h >= 90) return 'Oppressive'; if (h >= 70) return 'Very humid'; if (h >= 60) return 'Humid'; if (h >= 40) return 'Comfortable'; if (h >= 20) return 'Dry'; return 'Very dry'; }
 
-        function dewPoint(T, H) {
-            const a = 17.27, b = 237.7;
-            const alpha = (a * T) / (b + T) + Math.log(H / 100);
-            return (b * alpha) / (a - alpha);
-        }
-
-        function getCondition(temp, hum) {
-            if (temp >= 35 && hum >= 70) return { label: 'Extreme Heat & Humidity', cls: 'warning' };
-            if (temp >= 35) return { label: 'Very Hot', cls: 'warning' };
-            if (temp >= 30 && hum >= 70) return { label: 'Hot & Humid', cls: 'caution' };
-            if (temp >= 30) return { label: 'Hot', cls: 'caution' };
-            if (temp >= 25 && hum >= 60) return { label: 'Warm & Muggy', cls: 'caution' };
-            if (temp >= 20 && temp < 28 && hum >= 40 && hum < 70) return { label: 'Comfortable', cls: 'good' };
-            if (temp < 15) return { label: 'Cold', cls: 'info' };
-            if (hum > 80) return { label: 'Very Humid', cls: 'caution' };
-            if (hum < 20) return { label: 'Very Dry', cls: 'caution' };
-            return { label: 'Moderate', cls: 'info' };
-        }
-
-        function tempCategory(t) {
-            if (t >= 40) return 'Extremely hot';
-            if (t >= 35) return 'Very hot';
-            if (t >= 30) return 'Hot';
-            if (t >= 25) return 'Warm';
-            if (t >= 20) return 'Comfortable';
-            if (t >= 15) return 'Mild';
-            if (t >= 10) return 'Cool';
-            return 'Cold';
-        }
-
-        function humCategory(h) {
-            if (h >= 90) return 'Oppressive';
-            if (h >= 70) return 'Very humid';
-            if (h >= 60) return 'Humid';
-            if (h >= 40) return 'Comfortable';
-            if (h >= 20) return 'Dry';
-            return 'Very dry';
-        }
-
-        // ============================================================
-        // RECOMMENDATIONS
-        // ============================================================
         function updateRecommendations(temp, hum) {
             const recs = [];
-
-            if (temp >= 38) {
-                recs.push({ cls: 'warning', icon: '🌡️', title: 'Extreme Heat Alert', desc: 'Stay indoors with air conditioning. Avoid strenuous outdoor activity. High risk of heat stroke.' });
-            } else if (temp >= 33) {
-                recs.push({ cls: 'caution', icon: '☀️', title: 'High Temperature', desc: 'Stay hydrated and seek shade outdoors. Wear light-colored, breathable clothing.' });
-            } else if (temp >= 28) {
-                recs.push({ cls: 'caution', icon: '🌤️', title: 'Warm Weather', desc: 'Drink plenty of water. Morning or evening is best for outdoor exercise.' });
-            } else if (temp >= 20 && temp < 28) {
-                recs.push({ cls: 'good', icon: '✓', title: 'Comfortable Temperature', desc: 'Ideal conditions for outdoor activities and physical exercise.' });
-            } else if (temp < 15) {
-                recs.push({ cls: 'info', icon: '🧥', title: 'Cold Conditions', desc: 'Wear layers when going outside. Keep indoor heating adequate.' });
-            }
-
-            if (hum >= 80) {
-                recs.push({ cls: 'warning', icon: '💧', title: 'Very High Humidity', desc: 'Elevated mold and mildew risk. Use a dehumidifier indoors. Breathing may feel labored.' });
-            } else if (hum >= 65) {
-                recs.push({ cls: 'caution', icon: '💦', title: 'Elevated Humidity', desc: 'Feels warmer than actual temperature. Stay cool and limit prolonged outdoor exposure.' });
-            } else if (hum >= 40 && hum < 65) {
-                recs.push({ cls: 'good', icon: '✓', title: 'Ideal Humidity Level', desc: 'Relative humidity is in the optimal comfort zone (40–65%). Good for respiratory health.' });
-            } else if (hum < 20) {
-                recs.push({ cls: 'caution', icon: '🏜️', title: 'Low Humidity — Very Dry', desc: 'Use a humidifier indoors. Stay hydrated. Dry air can irritate airways and skin.' });
-            }
-
-            if (temp >= 30 && hum >= 70) {
-                recs.push({ cls: 'warning', icon: '⚠️', title: 'High Heat Index', desc: 'Current heat index is approximately ' + heatIndex(temp, hum).toFixed(1) + '°C — feels significantly hotter. Elderly and children are at risk.' });
-            }
-
-            if (temp >= 25 && hum >= 50 && hum < 75) {
-                recs.push({ cls: 'purple', icon: '🌱', title: 'Good for Plants', desc: 'Current conditions are suitable for most tropical houseplants and outdoor gardening.' });
-            }
-
-            if (hum >= 60 && temp >= 20) {
-                recs.push({ cls: 'info', icon: '🌿', title: 'Allergy Advisory', desc: 'Warm, humid conditions can increase mold spore counts. Those with respiratory conditions should take precaution.' });
-            }
-
-            const recBody = document.getElementById('rec-body');
-            if (recs.length === 0) {
-                recBody.innerHTML = `<div class="rec-item good"><div class="rec-icon">✓</div><div class="rec-content"><div class="rec-title">Conditions are normal</div><div class="rec-desc">No special recommendations at this time.</div></div></div>`;
-                return;
-            }
-            recBody.innerHTML = recs.map(r => `
-    <div class="rec-item ${r.cls}">
-      <div class="rec-icon">${r.icon}</div>
-      <div class="rec-content">
-        <div class="rec-title">${r.title}</div>
-        <div class="rec-desc">${r.desc}</div>
-      </div>
-    </div>
-  `).join('');
+            if (temp >= 38) recs.push({ cls: 'warning', icon: '🌡️', title: 'Extreme Heat Alert', desc: 'Stay indoors with AC. Risk of heat stroke.' });
+            else if (temp >= 33) recs.push({ cls: 'caution', icon: '☀️', title: 'High Temperature', desc: 'Stay hydrated, wear light clothing.' });
+            else if (temp >= 28) recs.push({ cls: 'caution', icon: '🌤️', title: 'Warm Weather', desc: 'Drink water. Exercise in morning/evening.' });
+            else if (temp >= 20 && temp < 28) recs.push({ cls: 'good', icon: '✓', title: 'Comfortable Temperature', desc: 'Ideal for outdoor activities.' });
+            else if (temp < 15) recs.push({ cls: 'info', icon: '🧥', title: 'Cold Conditions', desc: 'Wear layers. Keep indoor heating adequate.' });
+            if (hum >= 80) recs.push({ cls: 'warning', icon: '💧', title: 'Very High Humidity', desc: 'Use dehumidifier. Risk of mold.' });
+            else if (hum >= 65) recs.push({ cls: 'caution', icon: '💦', title: 'Elevated Humidity', desc: 'Feels warmer. Stay cool.' });
+            else if (hum >= 40 && hum < 65) recs.push({ cls: 'good', icon: '✓', title: 'Ideal Humidity', desc: 'Optimal comfort zone.' });
+            else if (hum < 20) recs.push({ cls: 'caution', icon: '🏜️', title: 'Low Humidity', desc: 'Use humidifier. Stay hydrated.' });
+            if (temp >= 30 && hum >= 70) recs.push({ cls: 'warning', icon: '⚠️', title: 'High Heat Index', desc: 'Feels like ' + heatIndex(temp, hum).toFixed(1) + '°C — take precautions.' });
+            const container = document.getElementById('rec-body');
+            if (recs.length === 0) container.innerHTML = '<div class="rec-item good"><div class="rec-icon">✓</div><div class="rec-content"><div class="rec-title">Conditions normal</div><div class="rec-desc">No special recommendations.</div></div></div>';
+            else container.innerHTML = recs.map(r => `<div class="rec-item ${r.cls}"><div class="rec-icon">${r.icon}</div><div class="rec-content"><div class="rec-title">${r.title}</div><div class="rec-desc">${r.desc}</div></div></div>`).join('');
         }
 
-        // ============================================================
-        // CHART
-        // ============================================================
-        const chartLabels = [], chartTemp = [], chartHum = [];
-        const MAX_POINTS = 30;
-
-        const ctx = document.getElementById('liveChart').getContext('2d');
-        const liveChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: [
-                    {
-                        label: 'Temperature (°C)',
-                        data: chartTemp,
-                        borderColor: '#f97316',
-                        backgroundColor: 'rgba(249,115,22,0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#f97316',
-                    },
-                    {
-                        label: 'Humidity (%)',
-                        data: chartHum,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#3b82f6',
-                        yAxisID: 'y2',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { font: { family: 'DM Sans', size: 12 }, usePointStyle: true, pointStyleWidth: 8, color: '#6b7280' }
-                    },
-                    tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#111827',
-                        bodyColor: '#6b7280',
-                        borderColor: '#e5e7eb',
-                        borderWidth: 1,
-                        padding: 10,
-                        titleFont: { family: 'Syne', weight: 700 },
-                        bodyFont: { family: 'DM Mono' },
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(0,0,0,0.04)' },
-                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af', maxTicksLimit: 8 }
-                    },
-                    y: {
-                        position: 'left',
-                        title: { display: true, text: '°C', color: '#f97316', font: { family: 'DM Sans', size: 11 } },
-                        grid: { color: 'rgba(0,0,0,0.04)' },
-                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af' }
-                    },
-                    y2: {
-                        position: 'right',
-                        title: { display: true, text: '%RH', color: '#3b82f6', font: { family: 'DM Sans', size: 11 } },
-                        grid: { drawOnChartArea: false },
-                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af' }
-                    }
-                }
-            }
-        });
-
-        function addChartPoint(temp, hum, doUpdate = true) {
-            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            chartLabels.push(now);
-            chartTemp.push(parseFloat(temp).toFixed(1));
-            chartHum.push(parseFloat(hum).toFixed(1));
-            if (chartLabels.length > MAX_POINTS) { chartLabels.shift(); chartTemp.shift(); chartHum.shift(); }
-            if (doUpdate) liveChart.update();
-        }
-
-        // ============================================================
-        // LOGS
-        // ============================================================
         function buildLogRow(temp, hum, ts) {
-            const hi = heatIndex(parseFloat(temp), parseFloat(hum));
-            const cond = getCondition(parseFloat(temp), parseFloat(hum));
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-    <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(ts)}</td>
-    <td class="temp-val">${parseFloat(temp).toFixed(1)}</td>
-    <td class="hum-val">${parseFloat(hum).toFixed(1)}</td>
-    <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
-    <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
-  `;
+            tr.innerHTML = `<td style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--gray-400)">${new Date(ts).toLocaleString()}</td><td class="temp-val">${parseFloat(temp).toFixed(1)}</td><td class="hum-val">${parseFloat(hum).toFixed(1)}</td><td style="font-family:'DM Mono'">${heatIndex(temp, hum).toFixed(1)}</td><td>${getCondition(temp, hum).label}</td>`;
             return tr;
         }
+        function appendLogRow(temp, hum, ts) { const tbody = document.getElementById('log-tbody'); const empty = tbody.querySelector('.log-empty'); if (empty) empty.closest('tr')?.remove(); tbody.prepend(buildLogRow(temp, hum, ts)); while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild); }
+        function clearLogs() { if (confirm('Clear local display?')) { document.getElementById('log-tbody').innerHTML = '<tr><td colspan="5"><div class="log-empty">Logs cleared from view.</div></td></tr>'; logRows = []; } }
+        function exportLogs() { if (logRows.length === 0) return alert('No data'); const rows = [['Timestamp', 'Temp_C', 'Humidity_%', 'HeatIndex_C', 'Condition']]; logRows.forEach(r => { const hi = heatIndex(r.temp, r.hum); rows.push([new Date(r.ts).toLocaleString(), parseFloat(r.temp).toFixed(2), parseFloat(r.hum).toFixed(2), hi.toFixed(2), getCondition(r.temp, r.hum).label]); }); const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'sensor_logs.csv'; a.click(); URL.revokeObjectURL(a.href); }
 
-        function appendLogRow(temp, hum, ts) {
-            logRows.push({ ts, temp, hum });
-            const tbody = document.getElementById('log-tbody');
-            const empties = tbody.querySelectorAll('.log-empty');
-            empties.forEach(e => e.closest('tr')?.remove());
-            const tr = buildLogRow(temp, hum, ts);
-            tbody.prepend(tr);
-            while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+        function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            liveChart = new Chart(ctx, { type: 'line', data: { labels: chartLabels, datasets: [{ label: 'Temperature (°C)', data: chartTemp, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#f97316' }, { label: 'Humidity (%)', data: chartHum, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#3b82f6', yAxisID: 'y2' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 12 }, usePointStyle: true } } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 8 } }, y: { title: { display: true, text: '°C', color: '#f97316' }, grid: { color: 'rgba(0,0,0,0.04)' } }, y2: { position: 'right', title: { display: true, text: '%RH', color: '#3b82f6' }, grid: { drawOnChartArea: false } } } } });
         }
+        function addChartPoint(temp, hum, doUpdate = true) { const now = new Date().toLocaleTimeString(); chartLabels.push(now); chartTemp.push(parseFloat(temp).toFixed(1)); chartHum.push(parseFloat(hum).toFixed(1)); if (chartLabels.length > 30) { chartLabels.shift(); chartTemp.shift(); chartHum.shift(); } if (doUpdate && liveChart) liveChart.update(); }
 
-        function clearLogs() {
-            if (!confirm('Clear local display? Supabase data is kept.')) return;
-            logRows = [];
-            document.getElementById('log-tbody').innerHTML =
-                '<tr><td colspan="5"><div class="log-empty">Logs cleared from view.</div></td></tr>';
-        }
+        function setStatus(key, state, text) { const dot = document.getElementById(`sb-${key}-dot`); const span = document.getElementById(`sb-${key}-text`); if (dot) dot.className = `status-dot ${state}`; if (span) span.textContent = text; }
 
-        function exportLogs() {
-            if (logRows.length === 0) { alert('No data to export.'); return; }
-            const rows = [['Timestamp', 'Temperature_C', 'Humidity_%RH', 'HeatIndex_C', 'Condition']];
-            logRows.forEach(r => {
-                const hi = heatIndex(parseFloat(r.temp), parseFloat(r.hum));
-                const cond = getCondition(parseFloat(r.temp), parseFloat(r.hum));
-                rows.push([r.ts, parseFloat(r.temp).toFixed(2), parseFloat(r.hum).toFixed(2), hi.toFixed(2), cond.label]);
-            });
-            const csv = rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = Object.assign(document.createElement('a'), { href: url, download: 'sensor_logs.csv' });
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+        function requestLocation() { if (!navigator.geolocation) return alert('Not supported'); navigator.geolocation.getCurrentPosition(pos => { const lat = pos.coords.latitude, lon = pos.coords.longitude; const iframe = document.getElementById('map-iframe'); const placeholder = document.getElementById('map-placeholder'); const overlay = document.getElementById('map-overlay'); iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`; iframe.style.display = 'block'; placeholder.style.display = 'none'; overlay.style.display = 'flex'; document.getElementById('map-coords').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`; document.getElementById('map-loc-chip').textContent = `${lat.toFixed(3)}, ${lon.toFixed(3)}`; document.getElementById('w-location').textContent = `Lat ${lat.toFixed(3)}, Lon ${lon.toFixed(3)}`; fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`).then(r => r.json()).then(d => { const city = d.address?.city || d.address?.town || d.address?.village || ''; const country = d.address?.country || ''; const loc = [city, country].filter(Boolean).join(', '); if (loc) { document.getElementById('w-location').textContent = loc; document.getElementById('map-loc-chip').textContent = loc; document.getElementById('map-coords').textContent = loc; } }).catch(() => { }); }, () => { }); }
 
-        // ============================================================
-        // GEOLOCATION + MAP
-        // ============================================================
-        function requestLocation() {
-            if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
-            navigator.geolocation.getCurrentPosition(pos => {
-                showMap(pos.coords.latitude, pos.coords.longitude);
-            }, err => { alert('Location error: ' + err.message); });
-        }
-
-        function showMap(lat, lon) {
-            const iframe = document.getElementById('map-iframe');
-            const placeholder = document.getElementById('map-placeholder');
-            const overlay = document.getElementById('map-overlay');
-            iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
-                (lon - 0.01) + ',' + (lat - 0.01) + ',' + (lon + 0.01) + ',' + (lat + 0.01) +
-                '&layer=mapnik&marker=' + lat + ',' + lon;
-            iframe.style.display = 'block';
-            placeholder.style.display = 'none';
-            overlay.style.display = 'flex';
-            document.getElementById('map-coords').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
-            document.getElementById('map-loc-chip').textContent = lat.toFixed(3) + ', ' + lon.toFixed(3);
-            document.getElementById('w-location').textContent = 'Lat ' + lat.toFixed(3) + ', Lon ' + lon.toFixed(3);
-
-            // Reverse geocode
-            fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json')
-                .then(r => r.json())
-                .then(d => {
-                    const city = d.address?.city || d.address?.town || d.address?.village || '';
-                    const country = d.address?.country || '';
-                    const loc = [city, country].filter(Boolean).join(', ');
-                    if (loc) {
-                        document.getElementById('w-location').textContent = loc;
-                        document.getElementById('map-loc-chip').textContent = loc;
-                        document.getElementById('map-coords').textContent = loc;
-                    }
-                }).catch(() => { });
-        }
-
-        // ============================================================
-        // STATUS HELPERS
-        // ============================================================
-        function setStatus(key, state, text) {
-            const dot = document.getElementById('sb-' + key + '-dot');
-            const span = document.getElementById('sb-' + key + '-text');
-            if (dot) dot.className = 'status-dot ' + state;
-            if (span) span.textContent = text;
-        }
-
-        function formatTs(ts) { return new Date(ts).toLocaleString(); }
-
-        // ============================================================
-        // INIT
-        // ============================================================
-        setInterval(() => {
-            document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
-        }, 1000);
-
-        // Auto-connect on load — no button needed
-        window.addEventListener('load', () => {
-            autoConnect();
-            // Auto-request location silently
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => showMap(pos.coords.latitude, pos.coords.longitude),
-                    () => { } // silent fail, user can click button manually
-                );
-            }
-        });
-
-        window.addEventListener('online', () => { setStatus('sb-wifi', 'connected', 'Online'); autoConnect(); });
-        window.addEventListener('offline', () => { setStatus('sb-wifi', 'disconnected', 'Offline'); setStatus('sb-db', 'disconnected', 'No network'); });
+        window.addEventListener('load', () => { initChart(); autoConnect(); setInterval(() => { document.getElementById('sb-time').textContent = new Date().toLocaleTimeString(); }, 1000); if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => { const lat = pos.coords.latitude, lon = pos.coords.longitude; const iframe = document.getElementById('map-iframe'); const placeholder = document.getElementById('map-placeholder'); const overlay = document.getElementById('map-overlay'); iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`; iframe.style.display = 'block'; placeholder.style.display = 'none'; overlay.style.display = 'flex'; document.getElementById('map-coords').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`; document.getElementById('map-loc-chip').textContent = `${lat.toFixed(3)}, ${lon.toFixed(3)}`; document.getElementById('w-location').textContent = `Lat ${lat.toFixed(3)}, Lon ${lon.toFixed(3)}`; }, () => { }); });
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+        window.requestLocation = requestLocation;
+        window.exportLogs = exportLogs;
+        window.clearLogs = clearLogs;
     </script>
 </body>
 
