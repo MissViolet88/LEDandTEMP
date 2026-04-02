@@ -24,14 +24,16 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 // ---- WIFI ----
-const char* ssid = "FREE"; 
+const char* ssid = "FREE";
 const char* password = "123456789";
 
 // ---- SUPABASE ----
-const char* supabaseUrl = "https://aatapixarmkgyyyctbmm.supabase.co";  // e.g. https://xxxx.supabase.co
-const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8";  // anon public key
+const char* supabaseUrl = "https://aatapixarmkgyyyctbmm.supabase.co";
+const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8";
 
 // ---- TRAFFIC LIGHT PINS ----
 #define PIN_GREEN 12
@@ -43,6 +45,10 @@ const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 #define DHTPIN 15
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
+
+// ---- NTP SETUP ----
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);  // UTC time, update every 60 seconds
 
 // ---- INTERVALS ----
 #define TRAFFIC_POLL_MS 2000  // Poll Supabase for traffic commands
@@ -95,6 +101,24 @@ void setup() {
     Serial.println("\n[WiFi] Failed. Will retry in loop.");
   }
 
+  // Initialize NTP
+  timeClient.begin();
+
+  // Wait for NTP to get initial time
+  Serial.println("[NTP] Getting real time...");
+  int ntpRetries = 0;
+  while (!timeClient.update() && ntpRetries < 10) {
+    timeClient.forceUpdate();
+    delay(1000);
+    ntpRetries++;
+  }
+
+  if (timeClient.isTimeSet()) {
+    Serial.println("[NTP] Time synchronized: " + timeClient.getFormattedTime());
+  } else {
+    Serial.println("[NTP] Warning: Could not get real time, using fallback");
+  }
+
   Serial.println("[ESP32] Setup complete.");
 }
 
@@ -103,6 +127,11 @@ void setup() {
 // ============================================================
 void loop() {
   unsigned long now = millis();
+
+  // Update NTP time periodically
+  if (timeClient.update()) {
+    // Time updated successfully
+  }
 
   // Reconnect WiFi if lost
   if (WiFi.status() != WL_CONNECTED) {
@@ -215,8 +244,8 @@ void readAndUploadSensor() {
   String body = "{\"temperature\":" + String(temperature, 2) + ",\"humidity\":" + String(humidity, 2) + ",\"created_at\":\"" + now + "\"}";
 
   int code = http.POST(body);
-  if (code == 200 || code == 201) {
-    Serial.println("[DHT11] Upload OK.");
+  if (code == 200 || code == 201 || code == 204) {
+    Serial.println("[DHT11] Upload OK with real timestamp: " + now);
   } else {
     Serial.println("[DHT11] Upload failed: " + String(code));
   }
@@ -240,82 +269,33 @@ void sendHeartbeat() {
   String now = getISOTime();
   String body = "{\"esp_heartbeat\":\"" + now + "\"}";
   int code = http.PATCH(body);
-  if (code != 200 && code != 204) {
+  if (code == 200 || code == 204) {
+    Serial.println("[Heartbeat] Sent with real timestamp");
+  } else {
     Serial.println("[Heartbeat] Failed: " + String(code));
   }
   http.end();
 }
 
 // ============================================================
-// ISO 8601 TIMESTAMP
+// ISO 8601 TIMESTAMP with REAL TIME from NTP
 // ============================================================
 String getISOTime() {
-  // Returns millis-based placeholder; for real time, use NTP
-  // Recommended: add NTPClient library for accurate timestamps
-  unsigned long ms = millis();
-  unsigned long s = ms / 1000;
-  unsigned long m = s / 60;
-  unsigned long h = m / 60;
-  s %= 60;
-  m %= 60;
-  h %= 24;
-  char buf[32];
-  // This gives a relative time; for real UTC use NTPClient
-  snprintf(buf, sizeof(buf), "2025-01-01T%02lu:%02lu:%02luZ", h, m, s);
-  return String(buf);
+  if (timeClient.isTimeSet()) {
+    // Get real UTC time
+    unsigned long epochTime = timeClient.getEpochTime();
+
+    // Convert to ISO 8601 format
+    time_t rawTime = epochTime;
+    struct tm* timeInfo;
+    timeInfo = gmtime(&rawTime);
+
+    char buffer[30];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", timeInfo);
+    return String(buffer);
+  } else {
+    // Fallback: Let Supabase use its DEFAULT NOW()
+    Serial.println("[NTP] Time not set, using Supabase default");
+    return "now()";  // This tells Supabase to use server time
+  }
 }
-
-// ============================================================
-// SETUP NOTE:
-// For accurate timestamps, add NTP support:
-//
-//   #include <NTPClient.h>
-//   #include <WiFiUDP.h>
-//   WiFiUDP ntpUDP;
-//   NTPClient timeClient(ntpUDP, "pool.ntp.org", 28800, 60000);
-//   // In setup(): timeClient.begin();
-//   // In loop():  timeClient.update();
-//   // Use:        timeClient.getFormattedTime()
-//
-// SUPABASE TABLES SQL (run in Supabase SQL Editor):
-// ============================================================
-/*
--- Traffic Control Table
-CREATE TABLE IF NOT EXISTS traffic_control (
-  id             INT PRIMARY KEY DEFAULT 1,
-  mode           TEXT DEFAULT 'off',
-  led_red        BOOLEAN DEFAULT FALSE,
-  led_yellow     BOOLEAN DEFAULT FALSE,
-  led_green      BOOLEAN DEFAULT FALSE,
-  led_builtin    BOOLEAN DEFAULT FALSE,
-  updated_at     TIMESTAMPTZ DEFAULT NOW(),
-  esp_heartbeat  TIMESTAMPTZ
-);
-INSERT INTO traffic_control (id) VALUES (1) ON CONFLICT DO NOTHING;
-
--- Traffic Logs Table
-CREATE TABLE IF NOT EXISTS traffic_logs (
-  id       SERIAL PRIMARY KEY,
-  color    TEXT,
-  message  TEXT,
-  ts       TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Sensor Data Table
-CREATE TABLE IF NOT EXISTS sensor_data (
-  id          SERIAL PRIMARY KEY,
-  temperature FLOAT,
-  humidity    FLOAT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable Row Level Security (optional but recommended)
-ALTER TABLE traffic_control ENABLE ROW LEVEL SECURITY;
-ALTER TABLE traffic_logs    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sensor_data     ENABLE ROW LEVEL SECURITY;
-
--- Allow all operations for anon key (adjust for production)
-CREATE POLICY "Allow all" ON traffic_control FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON traffic_logs    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON sensor_data     FOR ALL USING (true) WITH CHECK (true);
-*/
