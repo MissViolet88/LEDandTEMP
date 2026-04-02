@@ -1,0 +1,321 @@
+// ============================================================
+// ESP32 Combined: Traffic Light + DHT11 Temperature & Humidity
+// Supabase Integration via REST API
+//
+// TRAFFIC LIGHT PINS:
+//   Pin 12 = GREEN
+//   Pin 27 = YELLOW
+//   Pin 25 = RED
+//   Pin  2 = Built-in LED
+//
+// DHT11 PIN:
+//   Pin 15 = DATA
+//
+// TABLES REQUIRED IN SUPABASE:
+//   traffic_control (id int PK, mode text, led_red bool, led_yellow bool,
+//                    led_green bool, led_builtin bool, updated_at timestamptz,
+//                    esp_heartbeat timestamptz)
+//   traffic_logs    (id serial PK, color text, message text, ts timestamptz)
+//   sensor_data     (id serial PK, temperature float, humidity float,
+//                    created_at timestamptz default now())
+// ============================================================
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <DHT.h>
+
+// ---- WIFI ----
+const char* ssid = "FREE"; 
+const char* password = "123456789";
+
+// ---- SUPABASE ----
+const char* supabaseUrl = "https://aatapixarmkgyyyctbmm.supabase.co";  // e.g. https://xxxx.supabase.co
+const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8";  // anon public key
+
+// ---- TRAFFIC LIGHT PINS ----
+#define PIN_GREEN 12
+#define PIN_YELLOW 27
+#define PIN_RED 25
+#define PIN_BUILTIN 2
+
+// ---- DHT11 ----
+#define DHTPIN 15
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+// ---- INTERVALS ----
+#define TRAFFIC_POLL_MS 2000  // Poll Supabase for traffic commands
+#define SENSOR_INTERVAL 5000  // Read & upload DHT11 every 5 seconds
+#define HEARTBEAT_MS 8000     // Update ESP heartbeat
+
+// ---- STATE ----
+String currentMode = "off";
+bool led_red = false;
+bool led_yellow = false;
+bool led_green = false;
+bool led_builtin = false;
+String lastUpdatedAt = "";
+
+unsigned long lastTrafficPoll = 0;
+unsigned long lastSensorRead = 0;
+unsigned long lastHeartbeat = 0;
+
+// ============================================================
+// SETUP
+// ============================================================
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  // Pin modes
+  pinMode(PIN_GREEN, OUTPUT);
+  pinMode(PIN_YELLOW, OUTPUT);
+  pinMode(PIN_RED, OUTPUT);
+  pinMode(PIN_BUILTIN, OUTPUT);
+
+  allLedsOff();
+
+  // DHT
+  dht.begin();
+
+  // WiFi
+  Serial.print("[WiFi] Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  int retries = 0;
+  while (WiFi.status() != WL_CONNECTED && retries < 30) {
+    delay(500);
+    Serial.print(".");
+    retries++;
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[WiFi] Connected! IP: " + WiFi.localIP().toString());
+  } else {
+    Serial.println("\n[WiFi] Failed. Will retry in loop.");
+  }
+
+  Serial.println("[ESP32] Setup complete.");
+}
+
+// ============================================================
+// LOOP
+// ============================================================
+void loop() {
+  unsigned long now = millis();
+
+  // Reconnect WiFi if lost
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[WiFi] Reconnecting...");
+    WiFi.reconnect();
+    delay(1000);
+    return;
+  }
+
+  // --- POLL TRAFFIC CONTROL ---
+  if (now - lastTrafficPoll >= TRAFFIC_POLL_MS) {
+    lastTrafficPoll = now;
+    pollTrafficControl();
+  }
+
+  // --- READ & UPLOAD DHT11 ---
+  if (now - lastSensorRead >= SENSOR_INTERVAL) {
+    lastSensorRead = now;
+    readAndUploadSensor();
+  }
+
+  // --- HEARTBEAT ---
+  if (now - lastHeartbeat >= HEARTBEAT_MS) {
+    lastHeartbeat = now;
+    sendHeartbeat();
+  }
+}
+
+// ============================================================
+// TRAFFIC CONTROL
+// ============================================================
+void pollTrafficControl() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  String url = String(supabaseUrl) + "/rest/v1/traffic_control?id=eq.1&select=*";
+  http.begin(url);
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", String("Bearer ") + supabaseKey);
+  http.addHeader("Content-Type", "application/json");
+
+  int code = http.GET();
+  if (code == 200) {
+    String payload = http.getString();
+    DynamicJsonDocument doc(1024);
+    DeserializationError err = deserializeJson(doc, payload);
+    if (!err && doc.is<JsonArray>() && doc.size() > 0) {
+      JsonObject row = doc[0];
+      String updated = row["updated_at"].as<String>();
+
+      // Only apply if control state actually changed
+      if (updated != lastUpdatedAt) {
+        lastUpdatedAt = updated;
+        currentMode = row["mode"].as<String>();
+        led_red = row["led_red"].as<bool>();
+        led_yellow = row["led_yellow"].as<bool>();
+        led_green = row["led_green"].as<bool>();
+        led_builtin = row["led_builtin"].as<bool>();
+
+        applyLeds();
+        Serial.println("[Traffic] Mode=" + currentMode + " R=" + String(led_red) + " Y=" + String(led_yellow) + " G=" + String(led_green) + " BI=" + String(led_builtin));
+      }
+    }
+  } else {
+    Serial.println("[Traffic] Poll failed: " + String(code));
+  }
+  http.end();
+}
+
+void applyLeds() {
+  digitalWrite(PIN_RED, led_red ? HIGH : LOW);
+  digitalWrite(PIN_YELLOW, led_yellow ? HIGH : LOW);
+  digitalWrite(PIN_GREEN, led_green ? HIGH : LOW);
+  digitalWrite(PIN_BUILTIN, led_builtin ? HIGH : LOW);
+}
+
+void allLedsOff() {
+  digitalWrite(PIN_RED, LOW);
+  digitalWrite(PIN_YELLOW, LOW);
+  digitalWrite(PIN_GREEN, LOW);
+  digitalWrite(PIN_BUILTIN, LOW);
+}
+
+// ============================================================
+// DHT11 SENSOR
+// ============================================================
+void readAndUploadSensor() {
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("[DHT11] Read failed.");
+    return;
+  }
+
+  Serial.printf("[DHT11] Temp=%.1f°C  Hum=%.1f%%\n", temperature, humidity);
+
+  // Upload to Supabase
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  String url = String(supabaseUrl) + "/rest/v1/sensor_data";
+  http.begin(url);
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", String("Bearer ") + supabaseKey);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Prefer", "return=minimal");
+
+  String now = getISOTime();
+  String body = "{\"temperature\":" + String(temperature, 2) + ",\"humidity\":" + String(humidity, 2) + ",\"created_at\":\"" + now + "\"}";
+
+  int code = http.POST(body);
+  if (code == 200 || code == 201) {
+    Serial.println("[DHT11] Upload OK.");
+  } else {
+    Serial.println("[DHT11] Upload failed: " + String(code));
+  }
+  http.end();
+}
+
+// ============================================================
+// HEARTBEAT — lets dashboard know ESP is alive
+// ============================================================
+void sendHeartbeat() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  String url = String(supabaseUrl) + "/rest/v1/traffic_control?id=eq.1";
+  http.begin(url);
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", String("Bearer ") + supabaseKey);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Prefer", "return=minimal");
+
+  String now = getISOTime();
+  String body = "{\"esp_heartbeat\":\"" + now + "\"}";
+  int code = http.PATCH(body);
+  if (code != 200 && code != 204) {
+    Serial.println("[Heartbeat] Failed: " + String(code));
+  }
+  http.end();
+}
+
+// ============================================================
+// ISO 8601 TIMESTAMP
+// ============================================================
+String getISOTime() {
+  // Returns millis-based placeholder; for real time, use NTP
+  // Recommended: add NTPClient library for accurate timestamps
+  unsigned long ms = millis();
+  unsigned long s = ms / 1000;
+  unsigned long m = s / 60;
+  unsigned long h = m / 60;
+  s %= 60;
+  m %= 60;
+  h %= 24;
+  char buf[32];
+  // This gives a relative time; for real UTC use NTPClient
+  snprintf(buf, sizeof(buf), "2025-01-01T%02lu:%02lu:%02luZ", h, m, s);
+  return String(buf);
+}
+
+// ============================================================
+// SETUP NOTE:
+// For accurate timestamps, add NTP support:
+//
+//   #include <NTPClient.h>
+//   #include <WiFiUDP.h>
+//   WiFiUDP ntpUDP;
+//   NTPClient timeClient(ntpUDP, "pool.ntp.org", 28800, 60000);
+//   // In setup(): timeClient.begin();
+//   // In loop():  timeClient.update();
+//   // Use:        timeClient.getFormattedTime()
+//
+// SUPABASE TABLES SQL (run in Supabase SQL Editor):
+// ============================================================
+/*
+-- Traffic Control Table
+CREATE TABLE IF NOT EXISTS traffic_control (
+  id             INT PRIMARY KEY DEFAULT 1,
+  mode           TEXT DEFAULT 'off',
+  led_red        BOOLEAN DEFAULT FALSE,
+  led_yellow     BOOLEAN DEFAULT FALSE,
+  led_green      BOOLEAN DEFAULT FALSE,
+  led_builtin    BOOLEAN DEFAULT FALSE,
+  updated_at     TIMESTAMPTZ DEFAULT NOW(),
+  esp_heartbeat  TIMESTAMPTZ
+);
+INSERT INTO traffic_control (id) VALUES (1) ON CONFLICT DO NOTHING;
+
+-- Traffic Logs Table
+CREATE TABLE IF NOT EXISTS traffic_logs (
+  id       SERIAL PRIMARY KEY,
+  color    TEXT,
+  message  TEXT,
+  ts       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Sensor Data Table
+CREATE TABLE IF NOT EXISTS sensor_data (
+  id          SERIAL PRIMARY KEY,
+  temperature FLOAT,
+  humidity    FLOAT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security (optional but recommended)
+ALTER TABLE traffic_control ENABLE ROW LEVEL SECURITY;
+ALTER TABLE traffic_logs    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sensor_data     ENABLE ROW LEVEL SECURITY;
+
+-- Allow all operations for anon key (adjust for production)
+CREATE POLICY "Allow all" ON traffic_control FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON traffic_logs    FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON sensor_data     FOR ALL USING (true) WITH CHECK (true);
+*/

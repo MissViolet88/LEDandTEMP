@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Temperature & Humidity Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="temperature.css" />
+</head>
+
+<body>
+
+    <!-- TOP NAV -->
+    <nav class="topnav">
+        <a href="index.html" class="nav-brand">
+            <div class="nav-logo">
+                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="1" width="10" height="18" rx="3" stroke="white" stroke-width="1.5" />
+                    <circle cx="10" cy="6" r="1.8" fill="white" />
+                    <circle cx="10" cy="10" r="1.8" fill="white" opacity="0.5" />
+                    <circle cx="10" cy="14" r="1.8" fill="white" opacity="0.25" />
+                </svg>
+            </div>
+            <span class="nav-title">IoT <span>Center</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="traffic.html" class="nav-btn inactive">Traffic Light</a>
+            <a href="temperature.html" class="nav-btn active">Temp & Humidity</a>
+        </div>
+    </nav>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot connecting" id="sb-wifi-dot"></div>
+            <span class="status-label">Wi-Fi:</span>
+            <span id="sb-wifi-text">Connecting...</span>
+        </div>
+        <div class="status-item">
+            <div class="status-dot connecting" id="sb-db-dot"></div>
+            <span class="status-label">Supabase:</span>
+            <span id="sb-db-text">Connecting...</span>
+        </div>
+        <div class="status-item">
+            <div class="status-dot" id="sb-esp-dot"></div>
+            <span class="status-label">ESP32:</span>
+            <span id="sb-esp-text">Unknown</span>
+        </div>
+        <div class="status-item" style="margin-left:auto;">
+            <div class="live-badge">
+                <div class="live-badge-dot"></div>
+                Updates every 5s
+            </div>
+            &nbsp;
+            <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)"
+                id="sb-time">--:--:--</span>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-wrap">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div>
+                <div class="page-title">Weather <span>Monitor</span></div>
+                <div class="page-subtitle">DHT11 Sensor on ESP32 — Pin 15 — Live every 5 seconds</div>
+            </div>
+            <!-- Supabase Config inline -->
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                <input type="text" id="cfg-url" placeholder="Supabase URL"
+                    style="width:220px;font-size:0.8rem;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray-200);outline:none;"
+                    onfocus="this.style.borderColor='var(--purple)'"
+                    onblur="this.style.borderColor='var(--gray-200)'" />
+                <input type="password" id="cfg-key" placeholder="Anon Key"
+                    style="width:180px;font-size:0.8rem;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray-200);outline:none;"
+                    onfocus="this.style.borderColor='var(--purple)'"
+                    onblur="this.style.borderColor='var(--gray-200)'" />
+                <button onclick="initSupabase()"
+                    style="padding:7px 16px;background:var(--purple);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Connect</button>
+            </div>
+        </div>
+
+        <!-- WEATHER HERO -->
+        <div class="card weather-hero">
+            <div class="weather-hero-body">
+                <div class="weather-main">
+                    <div class="weather-loc" id="w-location">Loading location...</div>
+                    <div class="weather-temp-display">
+                        <span id="w-temp">--</span><sup>°C</sup>
+                    </div>
+                    <div class="weather-condition" id="w-condition">Awaiting sensor data...</div>
+                    <div class="weather-updated" id="w-updated">Last updated: --</div>
+                </div>
+                <div class="weather-stats">
+                    <div class="weather-stat">
+                        <span class="weather-stat-label">Humidity</span>
+                        <span class="weather-stat-value" id="w-hum">-- <span
+                                style="font-size:0.8rem;opacity:0.7">%</span></span>
+                    </div>
+                    <div class="weather-stat">
+                        <span class="weather-stat-label">Heat Index</span>
+                        <span class="weather-stat-value" id="w-heat">-- <span
+                                style="font-size:0.8rem;opacity:0.7">°C</span></span>
+                    </div>
+                    <div class="weather-stat">
+                        <span class="weather-stat-label">Dew Point</span>
+                        <span class="weather-stat-value" id="w-dew">-- <span
+                                style="font-size:0.8rem;opacity:0.7">°C</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEMP GAUGE -->
+        <div class="gauge-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title-sm">Temperature</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)">DHT11 Pin
+                        15</span>
+                </div>
+                <div class="gauge-card-body">
+                    <div class="gauge-ring-wrap">
+                        <svg viewBox="0 0 80 80">
+                            <circle class="gauge-bg" cx="40" cy="40" r="35" />
+                            <circle class="gauge-fill temp" id="gauge-temp-ring" cx="40" cy="40" r="35" />
+                        </svg>
+                        <div class="gauge-center">
+                            <span class="gauge-val" id="gauge-temp-val">--</span>
+                            <span class="gauge-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="gauge-info">
+                        <div class="gauge-title">Ambient Temperature</div>
+                        <div class="gauge-sublabel" id="temp-category">Waiting for data...</div>
+                        <div class="gauge-bar-wrap">
+                            <div class="gauge-bar-fill temp" id="gauge-temp-bar" style="width:0%"></div>
+                        </div>
+                        <div class="gauge-range"><span>0°C</span><span>50°C</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title-sm">Humidity</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)">DHT11 Pin
+                        15</span>
+                </div>
+                <div class="gauge-card-body">
+                    <div class="gauge-ring-wrap">
+                        <svg viewBox="0 0 80 80">
+                            <circle class="gauge-bg" cx="40" cy="40" r="35" />
+                            <circle class="gauge-fill hum" id="gauge-hum-ring" cx="40" cy="40" r="35" />
+                        </svg>
+                        <div class="gauge-center">
+                            <span class="gauge-val" id="gauge-hum-val">--</span>
+                            <span class="gauge-unit">%RH</span>
+                        </div>
+                    </div>
+                    <div class="gauge-info">
+                        <div class="gauge-title">Relative Humidity</div>
+                        <div class="gauge-sublabel" id="hum-category">Waiting for data...</div>
+                        <div class="gauge-bar-wrap">
+                            <div class="gauge-bar-fill hum" id="gauge-hum-bar" style="width:0%"></div>
+                        </div>
+                        <div class="gauge-range"><span>0%</span><span>100%</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAP -->
+        <div class="card map-col">
+            <div class="card-header">
+                <span class="card-title-sm">Sensor Location</span>
+                <span style="font-size:0.75rem;color:var(--gray-400)" id="map-coords">Locating...</span>
+            </div>
+            <div id="map-placeholder"
+                style="height:300px;background:var(--gray-50);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.75rem;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="20" r="19" stroke="var(--gray-200)" stroke-width="2" />
+                    <circle cx="20" cy="17" r="6" stroke="var(--purple)" stroke-width="2" />
+                    <path d="M20 23v10M14 38h12" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span style="font-size:0.85rem;color:var(--gray-400)">Allow location to show map</span>
+                <button onclick="requestLocation()"
+                    style="padding:7px 16px;background:var(--purple);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Get
+                    My Location</button>
+            </div>
+            <iframe id="map-iframe" class="map-frame" style="display:none;" allowfullscreen loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div class="map-overlay" id="map-overlay" style="display:none;">
+                <div class="map-chip">
+                    <div class="map-chip-dot" style="background:var(--orange)"></div>
+                    <span id="map-temp-chip">Temp: --°C</span>
+                </div>
+                <div class="map-chip">
+                    <div class="map-chip-dot" style="background:var(--blue)"></div>
+                    <span id="map-hum-chip">Humidity: --%</span>
+                </div>
+                <div class="map-chip">
+                    <div class="map-chip-dot" style="background:var(--purple)"></div>
+                    <span id="map-loc-chip">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECOMMENDATIONS -->
+        <div class="card recommendation-col">
+            <div class="card-header">
+                <span class="card-title-sm">Recommendations</span>
+                <span style="font-size:0.75rem;color:var(--gray-400)">Based on live sensor data</span>
+            </div>
+            <div class="rec-body" id="rec-body">
+                <div class="rec-item info">
+                    <div class="rec-icon">📡</div>
+                    <div class="rec-content">
+                        <div class="rec-title">Awaiting sensor data</div>
+                        <div class="rec-desc">Connect your ESP32 and Supabase to receive personalized recommendations
+                            based on temperature and humidity readings.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE FEED CHART -->
+        <div class="card feed-col">
+            <div class="card-header">
+                <span class="card-title-sm">Live Feed</span>
+                <div class="live-badge">
+                    <div class="live-badge-dot"></div>
+                    5-second interval
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="liveChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- LOGS -->
+        <div class="card logs-col">
+            <div class="card-header">
+                <span class="card-title-sm">Sensor Logs</span>
+                <div class="log-controls">
+                    <button class="btn-sm" onclick="exportLogs()">Export CSV</button>
+                    <button class="btn-sm" onclick="clearLogs()"
+                        style="color:var(--red);border-color:var(--red)">Clear</button>
+                </div>
+            </div>
+            <div class="log-table-wrap">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Temperature (°C)</th>
+                            <th>Humidity (%)</th>
+                            <th>Heat Index (°C)</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-tbody">
+                        <tr>
+                            <td colspan="5">
+                                <div class="log-empty">No data recorded yet. Connect your ESP32 and Supabase to start
+                                    logging.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <script>
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        let SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';
+        let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';
+        let supabaseReady = false;
+        const TABLE_SENSOR = 'sensor_data';
+
+        let userLat = null;
+        let userLon = null;
+
+        // ============================================================
+        // SUPABASE
+        // ============================================================
+        async function sbFetch(path, method = 'GET', body = null) {
+            if (!supabaseReady) return null;
+            const headers = {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+            };
+            const opts = { method, headers };
+            if (body) opts.body = JSON.stringify(body);
+            try {
+                const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+                const text = await res.text();
+                return text ? JSON.parse(text) : null;
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        async function initSupabase() {
+            SUPABASE_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/, '');
+            SUPABASE_KEY = document.getElementById('cfg-key').value.trim();
+            if (!SUPABASE_URL || !SUPABASE_KEY) { alert('Enter Supabase URL and Key.'); return; }
+            setStatus('sb-db', 'connecting', 'Connecting...');
+            try {
+                const res = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_SENSOR + '?limit=1', {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                if (res.status === 401 || res.status === 403) throw new Error('Unauthorized');
+                supabaseReady = true;
+                setStatus('sb-db', 'connected', 'Connected');
+                setStatus('sb-wifi', 'connected', 'Online');
+                await loadLogs();
+                startPolling();
+            } catch (e) {
+                supabaseReady = false;
+                setStatus('sb-db', 'disconnected', 'Failed: ' + e.message);
+            }
+        }
+
+        // ============================================================
+        // POLLING — every 5 seconds
+        // ============================================================
+        let pollInt = null;
+
+        function startPolling() {
+            pollInt = setInterval(fetchLatest, 5000);
+            fetchLatest();
+        }
+
+        async function fetchLatest() {
+            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.desc&limit=1');
+            if (!rows || rows.length === 0) return;
+            const r = rows[0];
+
+            // ESP32 heartbeat check
+            const diff = Date.now() - new Date(r.created_at).getTime();
+            if (diff < 15000) {
+                setStatus('sb-esp', 'connected', 'Online');
+            } else if (diff < 60000) {
+                setStatus('sb-esp', 'connecting', 'Idle');
+            } else {
+                setStatus('sb-esp', 'disconnected', 'Offline');
+            }
+
+            updateUI(r.temperature, r.humidity, r.created_at);
+            appendLog(r.temperature, r.humidity, r.created_at);
+            addChartPoint(r.temperature, r.humidity);
+        }
+
+        async function loadLogs() {
+            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.desc&limit=200');
+            if (!rows) return;
+            const tbody = document.getElementById('log-tbody');
+            tbody.innerHTML = '';
+            logRows = [];
+            rows.reverse().forEach(r => {
+                logRows.push({ ts: r.created_at, temp: r.temperature, hum: r.humidity });
+                const hi = heatIndex(r.temperature, r.humidity);
+                const cond = getCondition(r.temperature, r.humidity);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(r.created_at)}</td>
+      <td class="temp-val">${(+r.temperature).toFixed(1)}</td>
+      <td class="hum-val">${(+r.humidity).toFixed(1)}</td>
+      <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
+      <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
+    `;
+                tbody.prepend(tr);
+            });
+            // Pre-fill chart
+            const last30 = rows.slice(-30);
+            last30.forEach(r => addChartPoint(r.temperature, r.humidity, false));
+            liveChart.update();
+        }
+
+        let logRows = [];
+
+        function appendLog(temp, hum, ts) {
+            const tbody = document.getElementById('log-tbody');
+            const empties = tbody.querySelectorAll('.log-empty');
+            empties.forEach(e => e.closest('tr')?.remove());
+
+            logRows.push({ ts, temp, hum });
+            const hi = heatIndex(temp, hum);
+            const cond = getCondition(temp, hum);
+            const tr = document.createElement('tr');
+            tr.style.animation = 'fadeRow 0.3s ease';
+            tr.innerHTML = `
+    <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(ts)}</td>
+    <td class="temp-val">${(+temp).toFixed(1)}</td>
+    <td class="hum-val">${(+hum).toFixed(1)}</td>
+    <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
+    <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
+  `;
+            tbody.prepend(tr);
+
+            // Keep max 200 rows visible
+            while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+        }
+
+        function clearLogs() {
+            if (!confirm('Clear local display? (Supabase data is kept)')) return;
+            logRows = [];
+            document.getElementById('log-tbody').innerHTML = `
+    <tr><td colspan="5"><div class="log-empty">Logs cleared from view.</div></td></tr>
+  `;
+        }
+
+        function exportLogs() {
+            if (logRows.length === 0) { alert('No data to export.'); return; }
+            const rows = [['Timestamp', 'Temperature_C', 'Humidity_%RH', 'HeatIndex_C', 'Condition']];
+            logRows.forEach(r => {
+                const hi = heatIndex(r.temp, r.hum);
+                const cond = getCondition(r.temp, r.hum);
+                rows.push([r.ts, (+r.temp).toFixed(2), (+r.hum).toFixed(2), hi.toFixed(2), cond.label]);
+            });
+            const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = Object.assign(document.createElement('a'), { href: url, download: 'sensor_logs.csv' });
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ============================================================
+        // UI UPDATE
+        // ============================================================
+        function updateUI(temp, hum, ts) {
+            temp = parseFloat(temp);
+            hum = parseFloat(hum);
+
+            document.getElementById('w-temp').textContent = temp.toFixed(1);
+            document.getElementById('w-hum').textContent = hum.toFixed(1);
+            document.getElementById('w-updated').textContent = 'Last updated: ' + formatTs(ts);
+
+            const hi = heatIndex(temp, hum);
+            const dp = dewPoint(temp, hum);
+            document.getElementById('w-heat').textContent = hi.toFixed(1);
+            document.getElementById('w-dew').textContent = dp.toFixed(1);
+
+            const cond = getCondition(temp, hum);
+            document.getElementById('w-condition').textContent = cond.label;
+
+            // Gauges
+            document.getElementById('gauge-temp-val').textContent = temp.toFixed(1);
+            document.getElementById('gauge-hum-val').textContent = hum.toFixed(0);
+
+            const CIRC = 2 * Math.PI * 35;
+            const tempPct = Math.min(temp / 50, 1);
+            const humPct = Math.min(hum / 100, 1);
+            document.getElementById('gauge-temp-ring').style.strokeDasharray = CIRC;
+            document.getElementById('gauge-temp-ring').style.strokeDashoffset = CIRC * (1 - tempPct);
+            document.getElementById('gauge-hum-ring').style.strokeDasharray = CIRC;
+            document.getElementById('gauge-hum-ring').style.strokeDashoffset = CIRC * (1 - humPct);
+
+            document.getElementById('gauge-temp-bar').style.width = (tempPct * 100) + '%';
+            document.getElementById('gauge-hum-bar').style.width = (humPct * 100) + '%';
+
+            document.getElementById('temp-category').textContent = tempCategory(temp);
+            document.getElementById('hum-category').textContent = humCategory(hum);
+
+            // Map chips
+            document.getElementById('map-temp-chip').textContent = `Temp: ${temp.toFixed(1)}°C`;
+            document.getElementById('map-hum-chip').textContent = `Humidity: ${hum.toFixed(0)}%`;
+
+            // Recommendations
+            updateRecommendations(temp, hum);
+        }
+
+        // ============================================================
+        // WEATHER CALCULATIONS
+        // ============================================================
+        function heatIndex(T, H) {
+            // Simplified Rothfusz equation
+            if (T < 27) return T;
+            const hi = -8.78469475556 + 1.61139411 * T + 2.33854883889 * H
+                - 0.14611605 * T * H - 0.012308094 * T * T
+                - 0.0164248277778 * H * H + 0.002211732 * T * T * H
+                + 0.00072546 * T * H * H - 0.000003582 * T * T * H * H;
+            return hi;
+        }
+
+        function dewPoint(T, H) {
+            const a = 17.27, b = 237.7;
+            const alpha = (a * T) / (b + T) + Math.log(H / 100);
+            return (b * alpha) / (a - alpha);
+        }
+
+        function getCondition(temp, hum) {
+            if (temp >= 35 && hum >= 70) return { label: 'Extreme Heat & Humidity', cls: 'warning' };
+            if (temp >= 35) return { label: 'Very Hot', cls: 'warning' };
+            if (temp >= 30 && hum >= 70) return { label: 'Hot & Humid', cls: 'caution' };
+            if (temp >= 30) return { label: 'Hot', cls: 'caution' };
+            if (temp >= 25 && hum >= 60) return { label: 'Warm & Muggy', cls: 'caution' };
+            if (temp >= 20 && temp < 28 && hum >= 40 && hum < 70) return { label: 'Comfortable', cls: 'good' };
+            if (temp < 15) return { label: 'Cold', cls: 'info' };
+            if (hum > 80) return { label: 'Very Humid', cls: 'caution' };
+            if (hum < 20) return { label: 'Very Dry', cls: 'caution' };
+            return { label: 'Moderate', cls: 'info' };
+        }
+
+        function tempCategory(t) {
+            if (t >= 40) return 'Extremely hot';
+            if (t >= 35) return 'Very hot';
+            if (t >= 30) return 'Hot';
+            if (t >= 25) return 'Warm';
+            if (t >= 20) return 'Comfortable';
+            if (t >= 15) return 'Mild';
+            if (t >= 10) return 'Cool';
+            return 'Cold';
+        }
+
+        function humCategory(h) {
+            if (h >= 90) return 'Oppressive';
+            if (h >= 70) return 'Very humid';
+            if (h >= 60) return 'Humid';
+            if (h >= 40) return 'Comfortable';
+            if (h >= 20) return 'Dry';
+            return 'Very dry';
+        }
+
+        // ============================================================
+        // RECOMMENDATIONS
+        // ============================================================
+        function updateRecommendations(temp, hum) {
+            const recs = [];
+
+            // Temperature based
+            if (temp >= 38) {
+                recs.push({ cls: 'warning', icon: '🌡️', title: 'Extreme Heat Alert', desc: 'Stay indoors with air conditioning. Avoid strenuous activity outdoors. Risk of heat stroke is high.' });
+            } else if (temp >= 33) {
+                recs.push({ cls: 'caution', icon: '☀️', title: 'High Temperature', desc: 'Stay hydrated and seek shade when outdoors. Wear light-colored, breathable clothing.' });
+            } else if (temp >= 28) {
+                recs.push({ cls: 'caution', icon: '🌤️', title: 'Warm Weather', desc: 'Drink plenty of water. Morning or evening activities are recommended for outdoor exercise.' });
+            } else if (temp >= 20 && temp < 28) {
+                recs.push({ cls: 'good', icon: '✓', title: 'Comfortable Temperature', desc: 'Ideal conditions for outdoor activities and physical exercise.' });
+            } else if (temp < 15) {
+                recs.push({ cls: 'info', icon: '🧥', title: 'Cold Conditions', desc: 'Wear layers when going outside. Keep indoor heating adequate to prevent discomfort.' });
+            }
+
+            // Humidity based
+            if (hum >= 80) {
+                recs.push({ cls: 'warning', icon: '💧', title: 'Very High Humidity', desc: 'Mold and mildew risk is elevated. Use a dehumidifier indoors. Breathing may feel labored outdoors.' });
+            } else if (hum >= 65) {
+                recs.push({ cls: 'caution', icon: '💦', title: 'Elevated Humidity', desc: 'Feels warmer than the actual temperature. Stay cool and hydrated. Limit prolonged outdoor exposure.' });
+            } else if (hum >= 40 && hum < 65) {
+                recs.push({ cls: 'good', icon: '✓', title: 'Ideal Humidity Level', desc: 'Relative humidity is in the optimal comfort zone (40-65%). Good for respiratory health.' });
+            } else if (hum < 20) {
+                recs.push({ cls: 'caution', icon: '🏜️', title: 'Low Humidity — Very Dry', desc: 'Use a humidifier indoors. Stay hydrated. Dry air can irritate airways and skin.' });
+            }
+
+            // Combined heat + humidity
+            if (temp >= 30 && hum >= 70) {
+                recs.push({ cls: 'warning', icon: '⚠️', title: 'High Heat Index', desc: `Current heat index is approximately ${heatIndex(temp, hum).toFixed(1)}°C. This feels significantly hotter than the actual temperature. Elderly and young children are at risk.` });
+            }
+
+            // Farming / plants hint (fun recommendation)
+            if (temp >= 25 && hum >= 50 && hum < 75) {
+                recs.push({ cls: 'purple', icon: '🌱', title: 'Good for Plants', desc: 'Current conditions are suitable for most tropical houseplants. Ideal for gardening activities.' });
+            }
+
+            // Allergies
+            if (hum >= 60 && temp >= 20) {
+                recs.push({ cls: 'info', icon: '🌿', title: 'Allergy Advisory', desc: 'Warm, humid conditions can increase mold spore counts outdoors. Those with respiratory conditions should take precaution.' });
+            }
+
+            const recBody = document.getElementById('rec-body');
+            if (recs.length === 0) {
+                recBody.innerHTML = `<div class="rec-item good"><div class="rec-icon">✓</div><div class="rec-content"><div class="rec-title">Conditions are normal</div><div class="rec-desc">No special recommendations at this time.</div></div></div>`;
+                return;
+            }
+
+            recBody.innerHTML = recs.map(r => `
+    <div class="rec-item ${r.cls}">
+      <div class="rec-icon">${r.icon}</div>
+      <div class="rec-content">
+        <div class="rec-title">${r.title}</div>
+        <div class="rec-desc">${r.desc}</div>
+      </div>
+    </div>
+  `).join('');
+        }
+
+        // ============================================================
+        // CHART
+        // ============================================================
+        const chartLabels = [];
+        const chartTemp = [];
+        const chartHum = [];
+        const MAX_POINTS = 30;
+
+        const ctx = document.getElementById('liveChart').getContext('2d');
+        const liveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        data: chartTemp,
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249,115,22,0.08)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#f97316',
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: chartHum,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        yAxisID: 'y2',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { font: { family: 'DM Sans', size: 12 }, usePointStyle: true, pointStyleWidth: 8, color: '#6b7280' }
+                    },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#111827',
+                        bodyColor: '#6b7280',
+                        borderColor: '#e5e7eb',
+                        borderWidth: 1,
+                        padding: 10,
+                        titleFont: { family: 'Syne', weight: 700 },
+                        bodyFont: { family: 'DM Mono' },
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af', maxTicksLimit: 8 }
+                    },
+                    y: {
+                        position: 'left',
+                        title: { display: true, text: '°C', color: '#f97316', font: { family: 'DM Sans', size: 11 } },
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af' }
+                    },
+                    y2: {
+                        position: 'right',
+                        title: { display: true, text: '%RH', color: '#3b82f6', font: { family: 'DM Sans', size: 11 } },
+                        grid: { drawOnChartArea: false },
+                        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        function addChartPoint(temp, hum, doUpdate = true) {
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            chartLabels.push(now);
+            chartTemp.push(parseFloat(temp).toFixed(1));
+            chartHum.push(parseFloat(hum).toFixed(1));
+            if (chartLabels.length > MAX_POINTS) {
+                chartLabels.shift(); chartTemp.shift(); chartHum.shift();
+            }
+            if (doUpdate) liveChart.update();
+        }
+
+        // ============================================================
+        // GEOLOCATION + MAP
+        // ============================================================
+        function requestLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(pos => {
+                userLat = pos.coords.latitude;
+                userLon = pos.coords.longitude;
+                showMap(userLat, userLon);
+                document.getElementById('map-coords').textContent = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
+                document.getElementById('map-loc-chip').textContent = `${userLat.toFixed(3)}, ${userLon.toFixed(3)}`;
+                document.getElementById('w-location').textContent = `Lat ${userLat.toFixed(3)}, Lon ${userLon.toFixed(3)}`;
+
+                // Reverse geocode with Nominatim (free)
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLon}&format=json`)
+                    .then(r => r.json())
+                    .then(d => {
+                        const city = d.address?.city || d.address?.town || d.address?.village || '';
+                        const country = d.address?.country || '';
+                        const loc = [city, country].filter(Boolean).join(', ');
+                        if (loc) {
+                            document.getElementById('w-location').textContent = loc;
+                            document.getElementById('map-loc-chip').textContent = loc;
+                            document.getElementById('map-coords').textContent = loc;
+                        }
+                    }).catch(() => { });
+            }, err => {
+                alert('Could not get location: ' + err.message);
+            });
+        }
+
+        function showMap(lat, lon) {
+            const iframe = document.getElementById('map-iframe');
+            const placeholder = document.getElementById('map-placeholder');
+            const overlay = document.getElementById('map-overlay');
+            // Using OpenStreetMap embed
+            iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`;
+            iframe.style.display = 'block';
+            placeholder.style.display = 'none';
+            overlay.style.display = 'flex';
+        }
+
+        // Auto-request location
+        window.addEventListener('load', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLat = pos.coords.latitude;
+                    userLon = pos.coords.longitude;
+                    showMap(userLat, userLon);
+                    document.getElementById('map-coords').textContent = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
+                    document.getElementById('map-loc-chip').textContent = `${userLat.toFixed(3)}, ${userLon.toFixed(3)}`;
+                    document.getElementById('w-location').textContent = `Lat ${userLat.toFixed(3)}, Lon ${userLon.toFixed(3)}`;
+                }, () => { });
+            }
+        });
+
+        // ============================================================
+        // STATUS HELPERS
+        // ============================================================
+        function setStatus(key, state, text) {
+            const dot = document.getElementById('sb-' + key + '-dot');
+            const span = document.getElementById('sb-' + key + '-text');
+            if (dot) dot.className = 'status-dot ' + state;
+            if (span) span.textContent = text;
+        }
+
+        function formatTs(ts) {
+            return new Date(ts).toLocaleString();
+        }
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
+        }, 1000);
+    </script>
+</body>
+
+</html>

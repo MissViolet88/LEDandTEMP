@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IoT Control Center</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --purple: #7c3aed;
+            --purple-light: #a78bfa;
+            --purple-dark: #5b21b6;
+            --purple-soft: #ede9fe;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--white);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124, 58, 237, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(167, 139, 250, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+            max-width: 760px;
+            width: 100%;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--purple-soft);
+            color: var(--purple-dark);
+            font-family: 'Syne', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 1px solid rgba(124, 58, 237, 0.18);
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--purple);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.7);
+            }
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        h1 span {
+            color: var(--purple);
+        }
+
+        .subtitle {
+            color: var(--gray-500);
+            font-size: 1.05rem;
+            font-weight: 400;
+            line-height: 1.7;
+            margin-bottom: 3rem;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .card {
+            background: var(--white);
+            border: 1.5px solid var(--gray-100);
+            border-radius: 20px;
+            padding: 2rem 1.75rem;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--purple-soft) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.01);
+            border-color: var(--purple-light);
+            box-shadow: 0 16px 40px rgba(124, 58, 237, 0.14);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            position: relative;
+            z-index: 1;
+            width: 52px;
+            height: 52px;
+            background: var(--purple-soft);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 1px solid rgba(124, 58, 237, 0.15);
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+            text-align: left;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.35rem;
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            line-height: 1.6;
+        }
+
+        .card-arrow {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            transition: all 0.25s ease;
+            z-index: 1;
+        }
+
+        .card:hover .card-arrow {
+            background: var(--purple);
+            color: white;
+            transform: translateY(-50%) translateX(2px);
+        }
+
+        .footer-note {
+            margin-top: 2.5rem;
+            font-size: 0.8rem;
+            color: var(--gray-300);
+        }
+
+        .footer-note span {
+            color: var(--purple-light);
+        }
+
+        @media (max-width: 540px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+    <div class="container">
+        <div class="badge">
+            <div class="badge-dot"></div>
+            ESP32 IoT Dashboard
+        </div>
+        <h1>IoT <span>Control</span><br />Center</h1>
+        <p class="subtitle">Manage your ESP32 devices in real-time. Monitor traffic lights and environmental sensors
+            from one unified interface.</p>
+
+        <div class="cards">
+            <a href="traffic.html" class="card">
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="8" y="2" width="8" height="20" rx="4" stroke="#7c3aed" stroke-width="1.8" />
+                        <circle cx="12" cy="7" r="2" fill="#ef4444" />
+                        <circle cx="12" cy="12" r="2" fill="#f59e0b" />
+                        <circle cx="12" cy="17" r="2" fill="#22c55e" />
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Traffic Light</div>
+                    <div class="card-desc">Control & monitor LED traffic signals with countdown timers and logs.</div>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <a href="temperature.html" class="card">
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" stroke="#7c3aed"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Temperature & Humidity</div>
+                    <div class="card-desc">Live DHT11 weather monitoring with map, logs, and recommendations.</div>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+        </div>
+
+        <p class="footer-note">Powered by <span>ESP32</span> + <span>Supabase</span> realtime</p>
+    </div>
+</body>
+
+</html>
