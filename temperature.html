@@ -37,7 +37,7 @@
         <div class="status-item">
             <div class="status-dot connecting" id="sb-wifi-dot"></div>
             <span class="status-label">Wi-Fi:</span>
-            <span id="sb-wifi-text">Connecting...</span>
+            <span id="sb-wifi-text">Checking...</span>
         </div>
         <div class="status-item">
             <div class="status-dot connecting" id="sb-db-dot"></div>
@@ -47,7 +47,7 @@
         <div class="status-item">
             <div class="status-dot" id="sb-esp-dot"></div>
             <span class="status-label">ESP32:</span>
-            <span id="sb-esp-text">Unknown</span>
+            <span id="sb-esp-text">Waiting...</span>
         </div>
         <div class="status-item" style="margin-left:auto;">
             <div class="live-badge">
@@ -69,26 +69,13 @@
                 <div class="page-title">Weather <span>Monitor</span></div>
                 <div class="page-subtitle">DHT11 Sensor on ESP32 — Pin 15 — Live every 5 seconds</div>
             </div>
-            <!-- Supabase Config inline -->
-            <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
-                <input type="text" id="cfg-url" placeholder="Supabase URL"
-                    style="width:220px;font-size:0.8rem;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray-200);outline:none;"
-                    onfocus="this.style.borderColor='var(--purple)'"
-                    onblur="this.style.borderColor='var(--gray-200)'" />
-                <input type="password" id="cfg-key" placeholder="Anon Key"
-                    style="width:180px;font-size:0.8rem;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray-200);outline:none;"
-                    onfocus="this.style.borderColor='var(--purple)'"
-                    onblur="this.style.borderColor='var(--gray-200)'" />
-                <button onclick="initSupabase()"
-                    style="padding:7px 16px;background:var(--purple);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Connect</button>
-            </div>
         </div>
 
         <!-- WEATHER HERO -->
         <div class="card weather-hero">
             <div class="weather-hero-body">
                 <div class="weather-main">
-                    <div class="weather-loc" id="w-location">Loading location...</div>
+                    <div class="weather-loc" id="w-location">Detecting location...</div>
                     <div class="weather-temp-display">
                         <span id="w-temp">--</span><sup>°C</sup>
                     </div>
@@ -221,8 +208,8 @@
                     <div class="rec-icon">📡</div>
                     <div class="rec-content">
                         <div class="rec-title">Awaiting sensor data</div>
-                        <div class="rec-desc">Connect your ESP32 and Supabase to receive personalized recommendations
-                            based on temperature and humidity readings.</div>
+                        <div class="rec-desc">Connecting to Supabase... Recommendations will appear once data is
+                            received from the DHT11 sensor.</div>
                     </div>
                 </div>
             </div>
@@ -266,8 +253,7 @@
                     <tbody id="log-tbody">
                         <tr>
                             <td colspan="5">
-                                <div class="log-empty">No data recorded yet. Connect your ESP32 and Supabase to start
-                                    logging.</div>
+                                <div class="log-empty">No data yet. Waiting for ESP32 sensor readings...</div>
                             </td>
                         </tr>
                     </tbody>
@@ -277,72 +263,82 @@
 
     </div>
 
-    <!-- Chart.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
     <script>
         // ============================================================
-        // CONFIG
+        // SUPABASE CREDENTIALS — replace with your actual values
         // ============================================================
-        let SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';
-        let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';
-        let supabaseReady = false;
+        const SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';  // e.g. https://abcxyz.supabase.co
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';  // your anon public key
+
         const TABLE_SENSOR = 'sensor_data';
-
-        let userLat = null;
-        let userLon = null;
+        let supabaseReady = false;
+        let pollInt = null;
+        let logRows = [];
+        let lastRowId = null;   // track last seen row to avoid duplicate log entries
 
         // ============================================================
-        // SUPABASE
+        // SUPABASE HELPER
         // ============================================================
         async function sbFetch(path, method = 'GET', body = null) {
-            if (!supabaseReady) return null;
             const headers = {
                 'Content-Type': 'application/json',
                 'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
             };
             const opts = { method, headers };
             if (body) opts.body = JSON.stringify(body);
             try {
                 const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const text = await res.text();
                 return text ? JSON.parse(text) : null;
             } catch (e) {
-                console.error(e);
+                console.error('[Supabase]', e.message);
                 return null;
             }
         }
 
-        async function initSupabase() {
-            SUPABASE_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/, '');
-            SUPABASE_KEY = document.getElementById('cfg-key').value.trim();
-            if (!SUPABASE_URL || !SUPABASE_KEY) { alert('Enter Supabase URL and Key.'); return; }
+        // ============================================================
+        // AUTO-CONNECT ON PAGE LOAD — no button needed
+        // ============================================================
+        async function autoConnect() {
+            setStatus('sb-wifi', 'connecting', 'Checking...');
             setStatus('sb-db', 'connecting', 'Connecting...');
+
+            if (!navigator.onLine) {
+                setStatus('sb-wifi', 'disconnected', 'Offline');
+                setStatus('sb-db', 'disconnected', 'No network');
+                return;
+            }
+            setStatus('sb-wifi', 'connected', 'Online');
+
             try {
                 const res = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_SENSOR + '?limit=1', {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
                 });
-                if (res.status === 401 || res.status === 403) throw new Error('Unauthorized');
+                if (res.status === 401 || res.status === 403) throw new Error('Invalid API key');
+                if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
+
                 supabaseReady = true;
                 setStatus('sb-db', 'connected', 'Connected');
-                setStatus('sb-wifi', 'connected', 'Online');
-                await loadLogs();
+
+                await loadHistoricalLogs();
                 startPolling();
             } catch (e) {
                 supabaseReady = false;
-                setStatus('sb-db', 'disconnected', 'Failed: ' + e.message);
+                setStatus('sb-db', 'disconnected', 'Failed — ' + e.message);
             }
         }
 
         // ============================================================
         // POLLING — every 5 seconds
         // ============================================================
-        let pollInt = null;
-
         function startPolling() {
-            pollInt = setInterval(fetchLatest, 5000);
+            if (pollInt) clearInterval(pollInt);
             fetchLatest();
+            pollInt = setInterval(fetchLatest, 5000);
         }
 
         async function fetchLatest() {
@@ -350,94 +346,45 @@
             if (!rows || rows.length === 0) return;
             const r = rows[0];
 
-            // ESP32 heartbeat check
+            // Skip if same row as last poll
+            if (r.id && r.id === lastRowId) return;
+            lastRowId = r.id;
+
+            // ESP heartbeat from sensor timestamp
             const diff = Date.now() - new Date(r.created_at).getTime();
             if (diff < 15000) {
                 setStatus('sb-esp', 'connected', 'Online');
             } else if (diff < 60000) {
-                setStatus('sb-esp', 'connecting', 'Idle');
+                setStatus('sb-esp', 'connecting', 'Idle (' + Math.round(diff / 1000) + 's ago)');
             } else {
-                setStatus('sb-esp', 'disconnected', 'Offline');
+                setStatus('sb-esp', 'disconnected', 'Offline (' + Math.round(diff / 60000) + 'm ago)');
             }
 
             updateUI(r.temperature, r.humidity, r.created_at);
-            appendLog(r.temperature, r.humidity, r.created_at);
+            appendLogRow(r.temperature, r.humidity, r.created_at);
             addChartPoint(r.temperature, r.humidity);
         }
 
-        async function loadLogs() {
-            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.desc&limit=200');
-            if (!rows) return;
+        async function loadHistoricalLogs() {
+            const rows = await sbFetch(TABLE_SENSOR + '?order=created_at.asc&limit=200');
+            if (!rows || rows.length === 0) return;
+
             const tbody = document.getElementById('log-tbody');
             tbody.innerHTML = '';
             logRows = [];
-            rows.reverse().forEach(r => {
+
+            rows.forEach(r => {
                 logRows.push({ ts: r.created_at, temp: r.temperature, hum: r.humidity });
-                const hi = heatIndex(r.temperature, r.humidity);
-                const cond = getCondition(r.temperature, r.humidity);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-      <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(r.created_at)}</td>
-      <td class="temp-val">${(+r.temperature).toFixed(1)}</td>
-      <td class="hum-val">${(+r.humidity).toFixed(1)}</td>
-      <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
-      <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
-    `;
+                const tr = buildLogRow(r.temperature, r.humidity, r.created_at);
                 tbody.prepend(tr);
             });
-            // Pre-fill chart
-            const last30 = rows.slice(-30);
-            last30.forEach(r => addChartPoint(r.temperature, r.humidity, false));
+
+            // Seed chart with last 30 points
+            rows.slice(-30).forEach(r => addChartPoint(r.temperature, r.humidity, false));
             liveChart.update();
-        }
 
-        let logRows = [];
-
-        function appendLog(temp, hum, ts) {
-            const tbody = document.getElementById('log-tbody');
-            const empties = tbody.querySelectorAll('.log-empty');
-            empties.forEach(e => e.closest('tr')?.remove());
-
-            logRows.push({ ts, temp, hum });
-            const hi = heatIndex(temp, hum);
-            const cond = getCondition(temp, hum);
-            const tr = document.createElement('tr');
-            tr.style.animation = 'fadeRow 0.3s ease';
-            tr.innerHTML = `
-    <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(ts)}</td>
-    <td class="temp-val">${(+temp).toFixed(1)}</td>
-    <td class="hum-val">${(+hum).toFixed(1)}</td>
-    <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
-    <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
-  `;
-            tbody.prepend(tr);
-
-            // Keep max 200 rows visible
-            while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
-        }
-
-        function clearLogs() {
-            if (!confirm('Clear local display? (Supabase data is kept)')) return;
-            logRows = [];
-            document.getElementById('log-tbody').innerHTML = `
-    <tr><td colspan="5"><div class="log-empty">Logs cleared from view.</div></td></tr>
-  `;
-        }
-
-        function exportLogs() {
-            if (logRows.length === 0) { alert('No data to export.'); return; }
-            const rows = [['Timestamp', 'Temperature_C', 'Humidity_%RH', 'HeatIndex_C', 'Condition']];
-            logRows.forEach(r => {
-                const hi = heatIndex(r.temp, r.hum);
-                const cond = getCondition(r.temp, r.hum);
-                rows.push([r.ts, (+r.temp).toFixed(2), (+r.hum).toFixed(2), hi.toFixed(2), cond.label]);
-            });
-            const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = Object.assign(document.createElement('a'), { href: url, download: 'sensor_logs.csv' });
-            a.click();
-            URL.revokeObjectURL(url);
+            // Set last seen id
+            if (rows.length > 0) lastRowId = rows[rows.length - 1].id;
         }
 
         // ============================================================
@@ -466,6 +413,7 @@
             const CIRC = 2 * Math.PI * 35;
             const tempPct = Math.min(temp / 50, 1);
             const humPct = Math.min(hum / 100, 1);
+
             document.getElementById('gauge-temp-ring').style.strokeDasharray = CIRC;
             document.getElementById('gauge-temp-ring').style.strokeDashoffset = CIRC * (1 - tempPct);
             document.getElementById('gauge-hum-ring').style.strokeDasharray = CIRC;
@@ -477,11 +425,9 @@
             document.getElementById('temp-category').textContent = tempCategory(temp);
             document.getElementById('hum-category').textContent = humCategory(hum);
 
-            // Map chips
-            document.getElementById('map-temp-chip').textContent = `Temp: ${temp.toFixed(1)}°C`;
-            document.getElementById('map-hum-chip').textContent = `Humidity: ${hum.toFixed(0)}%`;
+            document.getElementById('map-temp-chip').textContent = 'Temp: ' + temp.toFixed(1) + '°C';
+            document.getElementById('map-hum-chip').textContent = 'Humidity: ' + hum.toFixed(0) + '%';
 
-            // Recommendations
             updateRecommendations(temp, hum);
         }
 
@@ -489,13 +435,10 @@
         // WEATHER CALCULATIONS
         // ============================================================
         function heatIndex(T, H) {
-            // Simplified Rothfusz equation
             if (T < 27) return T;
-            const hi = -8.78469475556 + 1.61139411 * T + 2.33854883889 * H
-                - 0.14611605 * T * H - 0.012308094 * T * T
-                - 0.0164248277778 * H * H + 0.002211732 * T * T * H
-                + 0.00072546 * T * H * H - 0.000003582 * T * T * H * H;
-            return hi;
+            return -8.78469475556 + 1.61139411 * T + 2.33854883889 * H
+                - 0.14611605 * T * H - 0.012308094 * T * T - 0.0164248277778 * H * H
+                + 0.002211732 * T * T * H + 0.00072546 * T * H * H - 0.000003582 * T * T * H * H;
         }
 
         function dewPoint(T, H) {
@@ -543,43 +486,38 @@
         function updateRecommendations(temp, hum) {
             const recs = [];
 
-            // Temperature based
             if (temp >= 38) {
-                recs.push({ cls: 'warning', icon: '🌡️', title: 'Extreme Heat Alert', desc: 'Stay indoors with air conditioning. Avoid strenuous activity outdoors. Risk of heat stroke is high.' });
+                recs.push({ cls: 'warning', icon: '🌡️', title: 'Extreme Heat Alert', desc: 'Stay indoors with air conditioning. Avoid strenuous outdoor activity. High risk of heat stroke.' });
             } else if (temp >= 33) {
-                recs.push({ cls: 'caution', icon: '☀️', title: 'High Temperature', desc: 'Stay hydrated and seek shade when outdoors. Wear light-colored, breathable clothing.' });
+                recs.push({ cls: 'caution', icon: '☀️', title: 'High Temperature', desc: 'Stay hydrated and seek shade outdoors. Wear light-colored, breathable clothing.' });
             } else if (temp >= 28) {
-                recs.push({ cls: 'caution', icon: '🌤️', title: 'Warm Weather', desc: 'Drink plenty of water. Morning or evening activities are recommended for outdoor exercise.' });
+                recs.push({ cls: 'caution', icon: '🌤️', title: 'Warm Weather', desc: 'Drink plenty of water. Morning or evening is best for outdoor exercise.' });
             } else if (temp >= 20 && temp < 28) {
                 recs.push({ cls: 'good', icon: '✓', title: 'Comfortable Temperature', desc: 'Ideal conditions for outdoor activities and physical exercise.' });
             } else if (temp < 15) {
-                recs.push({ cls: 'info', icon: '🧥', title: 'Cold Conditions', desc: 'Wear layers when going outside. Keep indoor heating adequate to prevent discomfort.' });
+                recs.push({ cls: 'info', icon: '🧥', title: 'Cold Conditions', desc: 'Wear layers when going outside. Keep indoor heating adequate.' });
             }
 
-            // Humidity based
             if (hum >= 80) {
-                recs.push({ cls: 'warning', icon: '💧', title: 'Very High Humidity', desc: 'Mold and mildew risk is elevated. Use a dehumidifier indoors. Breathing may feel labored outdoors.' });
+                recs.push({ cls: 'warning', icon: '💧', title: 'Very High Humidity', desc: 'Elevated mold and mildew risk. Use a dehumidifier indoors. Breathing may feel labored.' });
             } else if (hum >= 65) {
-                recs.push({ cls: 'caution', icon: '💦', title: 'Elevated Humidity', desc: 'Feels warmer than the actual temperature. Stay cool and hydrated. Limit prolonged outdoor exposure.' });
+                recs.push({ cls: 'caution', icon: '💦', title: 'Elevated Humidity', desc: 'Feels warmer than actual temperature. Stay cool and limit prolonged outdoor exposure.' });
             } else if (hum >= 40 && hum < 65) {
-                recs.push({ cls: 'good', icon: '✓', title: 'Ideal Humidity Level', desc: 'Relative humidity is in the optimal comfort zone (40-65%). Good for respiratory health.' });
+                recs.push({ cls: 'good', icon: '✓', title: 'Ideal Humidity Level', desc: 'Relative humidity is in the optimal comfort zone (40–65%). Good for respiratory health.' });
             } else if (hum < 20) {
                 recs.push({ cls: 'caution', icon: '🏜️', title: 'Low Humidity — Very Dry', desc: 'Use a humidifier indoors. Stay hydrated. Dry air can irritate airways and skin.' });
             }
 
-            // Combined heat + humidity
             if (temp >= 30 && hum >= 70) {
-                recs.push({ cls: 'warning', icon: '⚠️', title: 'High Heat Index', desc: `Current heat index is approximately ${heatIndex(temp, hum).toFixed(1)}°C. This feels significantly hotter than the actual temperature. Elderly and young children are at risk.` });
+                recs.push({ cls: 'warning', icon: '⚠️', title: 'High Heat Index', desc: 'Current heat index is approximately ' + heatIndex(temp, hum).toFixed(1) + '°C — feels significantly hotter. Elderly and children are at risk.' });
             }
 
-            // Farming / plants hint (fun recommendation)
             if (temp >= 25 && hum >= 50 && hum < 75) {
-                recs.push({ cls: 'purple', icon: '🌱', title: 'Good for Plants', desc: 'Current conditions are suitable for most tropical houseplants. Ideal for gardening activities.' });
+                recs.push({ cls: 'purple', icon: '🌱', title: 'Good for Plants', desc: 'Current conditions are suitable for most tropical houseplants and outdoor gardening.' });
             }
 
-            // Allergies
             if (hum >= 60 && temp >= 20) {
-                recs.push({ cls: 'info', icon: '🌿', title: 'Allergy Advisory', desc: 'Warm, humid conditions can increase mold spore counts outdoors. Those with respiratory conditions should take precaution.' });
+                recs.push({ cls: 'info', icon: '🌿', title: 'Allergy Advisory', desc: 'Warm, humid conditions can increase mold spore counts. Those with respiratory conditions should take precaution.' });
             }
 
             const recBody = document.getElementById('rec-body');
@@ -587,7 +525,6 @@
                 recBody.innerHTML = `<div class="rec-item good"><div class="rec-icon">✓</div><div class="rec-content"><div class="rec-title">Conditions are normal</div><div class="rec-desc">No special recommendations at this time.</div></div></div>`;
                 return;
             }
-
             recBody.innerHTML = recs.map(r => `
     <div class="rec-item ${r.cls}">
       <div class="rec-icon">${r.icon}</div>
@@ -602,9 +539,7 @@
         // ============================================================
         // CHART
         // ============================================================
-        const chartLabels = [];
-        const chartTemp = [];
-        const chartHum = [];
+        const chartLabels = [], chartTemp = [], chartHum = [];
         const MAX_POINTS = 30;
 
         const ctx = document.getElementById('liveChart').getContext('2d');
@@ -684,70 +619,98 @@
             chartLabels.push(now);
             chartTemp.push(parseFloat(temp).toFixed(1));
             chartHum.push(parseFloat(hum).toFixed(1));
-            if (chartLabels.length > MAX_POINTS) {
-                chartLabels.shift(); chartTemp.shift(); chartHum.shift();
-            }
+            if (chartLabels.length > MAX_POINTS) { chartLabels.shift(); chartTemp.shift(); chartHum.shift(); }
             if (doUpdate) liveChart.update();
+        }
+
+        // ============================================================
+        // LOGS
+        // ============================================================
+        function buildLogRow(temp, hum, ts) {
+            const hi = heatIndex(parseFloat(temp), parseFloat(hum));
+            const cond = getCondition(parseFloat(temp), parseFloat(hum));
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+    <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--gray-400)">${formatTs(ts)}</td>
+    <td class="temp-val">${parseFloat(temp).toFixed(1)}</td>
+    <td class="hum-val">${parseFloat(hum).toFixed(1)}</td>
+    <td style="font-family:'DM Mono',monospace">${hi.toFixed(1)}</td>
+    <td style="font-size:0.82rem;color:var(--gray-600)">${cond.label}</td>
+  `;
+            return tr;
+        }
+
+        function appendLogRow(temp, hum, ts) {
+            logRows.push({ ts, temp, hum });
+            const tbody = document.getElementById('log-tbody');
+            const empties = tbody.querySelectorAll('.log-empty');
+            empties.forEach(e => e.closest('tr')?.remove());
+            const tr = buildLogRow(temp, hum, ts);
+            tbody.prepend(tr);
+            while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+        }
+
+        function clearLogs() {
+            if (!confirm('Clear local display? Supabase data is kept.')) return;
+            logRows = [];
+            document.getElementById('log-tbody').innerHTML =
+                '<tr><td colspan="5"><div class="log-empty">Logs cleared from view.</div></td></tr>';
+        }
+
+        function exportLogs() {
+            if (logRows.length === 0) { alert('No data to export.'); return; }
+            const rows = [['Timestamp', 'Temperature_C', 'Humidity_%RH', 'HeatIndex_C', 'Condition']];
+            logRows.forEach(r => {
+                const hi = heatIndex(parseFloat(r.temp), parseFloat(r.hum));
+                const cond = getCondition(parseFloat(r.temp), parseFloat(r.hum));
+                rows.push([r.ts, parseFloat(r.temp).toFixed(2), parseFloat(r.hum).toFixed(2), hi.toFixed(2), cond.label]);
+            });
+            const csv = rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = Object.assign(document.createElement('a'), { href: url, download: 'sensor_logs.csv' });
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // ============================================================
         // GEOLOCATION + MAP
         // ============================================================
         function requestLocation() {
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser.');
-                return;
-            }
+            if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
             navigator.geolocation.getCurrentPosition(pos => {
-                userLat = pos.coords.latitude;
-                userLon = pos.coords.longitude;
-                showMap(userLat, userLon);
-                document.getElementById('map-coords').textContent = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
-                document.getElementById('map-loc-chip').textContent = `${userLat.toFixed(3)}, ${userLon.toFixed(3)}`;
-                document.getElementById('w-location').textContent = `Lat ${userLat.toFixed(3)}, Lon ${userLon.toFixed(3)}`;
-
-                // Reverse geocode with Nominatim (free)
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLon}&format=json`)
-                    .then(r => r.json())
-                    .then(d => {
-                        const city = d.address?.city || d.address?.town || d.address?.village || '';
-                        const country = d.address?.country || '';
-                        const loc = [city, country].filter(Boolean).join(', ');
-                        if (loc) {
-                            document.getElementById('w-location').textContent = loc;
-                            document.getElementById('map-loc-chip').textContent = loc;
-                            document.getElementById('map-coords').textContent = loc;
-                        }
-                    }).catch(() => { });
-            }, err => {
-                alert('Could not get location: ' + err.message);
-            });
+                showMap(pos.coords.latitude, pos.coords.longitude);
+            }, err => { alert('Location error: ' + err.message); });
         }
 
         function showMap(lat, lon) {
             const iframe = document.getElementById('map-iframe');
             const placeholder = document.getElementById('map-placeholder');
             const overlay = document.getElementById('map-overlay');
-            // Using OpenStreetMap embed
-            iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`;
+            iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
+                (lon - 0.01) + ',' + (lat - 0.01) + ',' + (lon + 0.01) + ',' + (lat + 0.01) +
+                '&layer=mapnik&marker=' + lat + ',' + lon;
             iframe.style.display = 'block';
             placeholder.style.display = 'none';
             overlay.style.display = 'flex';
-        }
+            document.getElementById('map-coords').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+            document.getElementById('map-loc-chip').textContent = lat.toFixed(3) + ', ' + lon.toFixed(3);
+            document.getElementById('w-location').textContent = 'Lat ' + lat.toFixed(3) + ', Lon ' + lon.toFixed(3);
 
-        // Auto-request location
-        window.addEventListener('load', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    userLat = pos.coords.latitude;
-                    userLon = pos.coords.longitude;
-                    showMap(userLat, userLon);
-                    document.getElementById('map-coords').textContent = `${userLat.toFixed(4)}, ${userLon.toFixed(4)}`;
-                    document.getElementById('map-loc-chip').textContent = `${userLat.toFixed(3)}, ${userLon.toFixed(3)}`;
-                    document.getElementById('w-location').textContent = `Lat ${userLat.toFixed(3)}, Lon ${userLon.toFixed(3)}`;
-                }, () => { });
-            }
-        });
+            // Reverse geocode
+            fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json')
+                .then(r => r.json())
+                .then(d => {
+                    const city = d.address?.city || d.address?.town || d.address?.village || '';
+                    const country = d.address?.country || '';
+                    const loc = [city, country].filter(Boolean).join(', ');
+                    if (loc) {
+                        document.getElementById('w-location').textContent = loc;
+                        document.getElementById('map-loc-chip').textContent = loc;
+                        document.getElementById('map-coords').textContent = loc;
+                    }
+                }).catch(() => { });
+        }
 
         // ============================================================
         // STATUS HELPERS
@@ -759,14 +722,29 @@
             if (span) span.textContent = text;
         }
 
-        function formatTs(ts) {
-            return new Date(ts).toLocaleString();
-        }
+        function formatTs(ts) { return new Date(ts).toLocaleString(); }
 
-        // Clock
+        // ============================================================
+        // INIT
+        // ============================================================
         setInterval(() => {
             document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
         }, 1000);
+
+        // Auto-connect on load — no button needed
+        window.addEventListener('load', () => {
+            autoConnect();
+            // Auto-request location silently
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => showMap(pos.coords.latitude, pos.coords.longitude),
+                    () => { } // silent fail, user can click button manually
+                );
+            }
+        });
+
+        window.addEventListener('online', () => { setStatus('sb-wifi', 'connected', 'Online'); autoConnect(); });
+        window.addEventListener('offline', () => { setStatus('sb-wifi', 'disconnected', 'Offline'); setStatus('sb-db', 'disconnected', 'No network'); });
     </script>
 </body>
 

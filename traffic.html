@@ -1,630 +1,641 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Traffic Light Dashboard</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap"
-        rel="stylesheet" />
-    <link rel="stylesheet" href="traffic.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Traffic Light Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="traffic.css"/>
 </head>
-
 <body>
 
-    <!-- TOP NAV -->
-    <nav class="topnav">
-        <a href="index.html" class="nav-brand">
-            <div class="nav-logo">
-                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="5" y="1" width="10" height="18" rx="3" stroke="white" stroke-width="1.5" />
-                    <circle cx="10" cy="6" r="1.8" fill="white" />
-                    <circle cx="10" cy="10" r="1.8" fill="white" opacity="0.5" />
-                    <circle cx="10" cy="14" r="1.8" fill="white" opacity="0.25" />
-                </svg>
-            </div>
-            <span class="nav-title">IoT <span>Center</span></span>
-        </a>
-        <div class="nav-links">
-            <a href="traffic.html" class="nav-btn active">Traffic Light</a>
-            <a href="temperature.html" class="nav-btn inactive">Temp & Humidity</a>
-        </div>
-    </nav>
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a href="index.html" class="nav-brand">
+    <div class="nav-logo">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="1" width="10" height="18" rx="3" stroke="white" stroke-width="1.5"/>
+        <circle cx="10" cy="6" r="1.8" fill="white"/>
+        <circle cx="10" cy="10" r="1.8" fill="white" opacity="0.5"/>
+        <circle cx="10" cy="14" r="1.8" fill="white" opacity="0.25"/>
+      </svg>
+    </div>
+    <span class="nav-title">IoT <span>Center</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="traffic.html" class="nav-btn active">Traffic Light</a>
+    <a href="temperature.html" class="nav-btn inactive">Temp & Humidity</a>
+  </div>
+</nav>
 
-    <!-- STATUS BAR -->
-    <div class="status-bar">
-        <div class="status-item">
-            <div class="status-dot connecting" id="sb-wifi-dot"></div>
-            <span class="status-label">Wi-Fi:</span>
-            <span id="sb-wifi-text">Connecting...</span>
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-item">
+    <div class="status-dot connecting" id="sb-wifi-dot"></div>
+    <span class="status-label">Wi-Fi:</span>
+    <span id="sb-wifi-text">Checking...</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot connecting" id="sb-db-dot"></div>
+    <span class="status-label">Supabase:</span>
+    <span id="sb-db-text">Connecting...</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot" id="sb-esp-dot"></div>
+    <span class="status-label">ESP32:</span>
+    <span id="sb-esp-text">Waiting...</span>
+  </div>
+  <div class="status-item" style="margin-left:auto">
+    <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)" id="sb-time">--:--:--</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Traffic <span>Light</span> Dashboard</div>
+      <div class="page-subtitle">ESP32 LED Control via Supabase Realtime</div>
+    </div>
+  </div>
+
+  <!-- LEFT: TRAFFIC LIGHT VISUAL + COUNTDOWN -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title-sm">Signal Visualizer</span>
+        <span class="phase-badge off" id="phase-badge">OFF</span>
+      </div>
+      <div class="tl-visual-wrap">
+        <div class="tl-housing">
+          <div class="tl-bulb red-off"    id="bulb-red"></div>
+          <div class="tl-bulb yellow-off" id="bulb-yellow"></div>
+          <div class="tl-bulb green-off"  id="bulb-green"></div>
         </div>
-        <div class="status-item">
-            <div class="status-dot connecting" id="sb-db-dot"></div>
-            <span class="status-label">Supabase:</span>
-            <span id="sb-db-text">Connecting...</span>
+        <div class="tl-post"></div>
+        <div class="tl-base"></div>
+
+        <div class="countdown-wrap">
+          <div class="countdown-ring-container">
+            <svg viewBox="0 0 100 100">
+              <circle class="countdown-ring-bg" cx="50" cy="50" r="45"/>
+              <circle class="countdown-ring-progress" id="ring-progress" cx="50" cy="50" r="45"/>
+            </svg>
+            <div class="countdown-center">
+              <div class="countdown-number" id="countdown-num">--</div>
+              <div class="countdown-label">seconds</div>
+            </div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--gray-400);text-align:center;margin-top:4px" id="countdown-phase-label">Traffic light is off</div>
         </div>
-        <div class="status-item">
-            <div class="status-dot" id="sb-esp-dot"></div>
-            <span class="status-label">ESP32:</span>
-            <span id="sb-esp-text">Unknown</span>
-        </div>
-        <div class="status-item" style="margin-left:auto">
-            <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--gray-400)"
-                id="sb-time">--:--:--</span>
-        </div>
+      </div>
     </div>
 
-    <!-- MAIN -->
-    <div class="main-wrap">
+  </div>
 
-        <!-- PAGE HEADER -->
-        <div class="page-header">
-            <div>
-                <div class="page-title">Traffic <span>Light</span> Dashboard</div>
-                <div class="page-subtitle">ESP32 LED Control via Supabase Realtime</div>
+  <!-- RIGHT: CONTROLS -->
+  <div class="right-col">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title-sm">Main Controls</span>
+      </div>
+      <div class="card-body">
+        <div class="controls-grid">
+          <div class="control-section-label">Traffic Light System</div>
+
+          <div class="control-row" id="row-tl-auto">
+            <div class="control-row-info">
+              <div class="control-indicator ci-purple" id="ci-auto"></div>
+              <div>
+                <div class="control-label">Automatic Cycle</div>
+                <div class="control-sublabel">Red 30s → Yellow 10s → Green 30s → Yellow 10s → repeat</div>
+              </div>
             </div>
-        </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-auto" onchange="handleToggle('auto', this.checked)"/>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
 
-        <!-- LEFT: TRAFFIC LIGHT VISUAL + COUNTDOWN -->
-        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+          <div class="control-section-label" style="margin-top:0.25rem">Manual LED Override</div>
 
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title-sm">Signal Visualizer</span>
-                    <span class="phase-badge off" id="phase-badge">OFF</span>
-                </div>
-                <div class="tl-visual-wrap">
-                    <div class="tl-housing">
-                        <div class="tl-bulb red-off" id="bulb-red"></div>
-                        <div class="tl-bulb yellow-off" id="bulb-yellow"></div>
-                        <div class="tl-bulb green-off" id="bulb-green"></div>
-                    </div>
-                    <div class="tl-post"></div>
-                    <div class="tl-base"></div>
-
-                    <div class="countdown-wrap">
-                        <div class="countdown-ring-container">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="countdown-ring-bg" cx="50" cy="50" r="45" />
-                                <circle class="countdown-ring-progress" id="ring-progress" cx="50" cy="50" r="45" />
-                            </svg>
-                            <div class="countdown-center">
-                                <div class="countdown-number" id="countdown-num">--</div>
-                                <div class="countdown-label">seconds</div>
-                            </div>
-                        </div>
-                        <div style="font-size:0.78rem;color:var(--gray-400);text-align:center;margin-top:4px"
-                            id="countdown-phase-label">Traffic light is off</div>
-                    </div>
-                </div>
+          <div class="control-row" id="row-led-red">
+            <div class="control-row-info">
+              <div class="control-indicator ci-red" id="ci-red"></div>
+              <div>
+                <div class="control-label">Red LED</div>
+                <div class="control-sublabel">Pin 25 — STOP</div>
+              </div>
             </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-red" onchange="handleToggle('led_red', this.checked)"/>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
 
-        </div>
-
-        <!-- RIGHT: CONTROLS -->
-        <div class="right-col">
-
-            <!-- Traffic Light On/Off -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title-sm">Main Controls</span>
-                </div>
-                <div class="card-body">
-                    <div class="controls-grid">
-                        <div class="control-section-label">Traffic Light System</div>
-
-                        <div class="control-row" id="row-tl-auto">
-                            <div class="control-row-info">
-                                <div class="control-indicator ci-purple" id="ci-auto"></div>
-                                <div>
-                                    <div class="control-label">Automatic Cycle</div>
-                                    <div class="control-sublabel">Red 30s → Yellow 10s → Green 30s</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-auto" onchange="handleToggle('auto', this.checked)" />
-                                <div class="toggle-track"></div>
-                            </label>
-                        </div>
-
-                        <div class="control-section-label" style="margin-top:0.25rem">Manual LED Override</div>
-
-                        <div class="control-row" id="row-led-red">
-                            <div class="control-row-info">
-                                <div class="control-indicator ci-red" id="ci-red"></div>
-                                <div>
-                                    <div class="control-label">Red LED</div>
-                                    <div class="control-sublabel">Pin 25 — STOP</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-red"
-                                    onchange="handleToggle('led_red', this.checked)" />
-                                <div class="toggle-track"></div>
-                            </label>
-                        </div>
-
-                        <div class="control-row" id="row-led-yellow">
-                            <div class="control-row-info">
-                                <div class="control-indicator ci-yellow" id="ci-yellow"></div>
-                                <div>
-                                    <div class="control-label">Yellow LED</div>
-                                    <div class="control-sublabel">Pin 27 — READY</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-yellow"
-                                    onchange="handleToggle('led_yellow', this.checked)" />
-                                <div class="toggle-track"></div>
-                            </label>
-                        </div>
-
-                        <div class="control-row" id="row-led-green">
-                            <div class="control-row-info">
-                                <div class="control-indicator ci-green" id="ci-green"></div>
-                                <div>
-                                    <div class="control-label">Green LED</div>
-                                    <div class="control-sublabel">Pin 12 — GO</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-green"
-                                    onchange="handleToggle('led_green', this.checked)" />
-                                <div class="toggle-track"></div>
-                            </label>
-                        </div>
-
-                        <div class="control-section-label" style="margin-top:0.25rem">Built-in LED</div>
-
-                        <div class="control-row" id="row-led-builtin">
-                            <div class="control-row-info">
-                                <div class="builtin-led-indicator" id="builtin-indicator"></div>
-                                <div>
-                                    <div class="control-label">ESP32 Built-in LED</div>
-                                    <div class="control-sublabel">GPIO 2 — On-board blue LED</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-builtin"
-                                    onchange="handleToggle('led_builtin', this.checked)" />
-                                <div class="toggle-track"></div>
-                            </label>
-                        </div>
-
-                    </div>
-                </div>
+          <div class="control-row" id="row-led-yellow">
+            <div class="control-row-info">
+              <div class="control-indicator ci-yellow" id="ci-yellow"></div>
+              <div>
+                <div class="control-label">Yellow LED</div>
+                <div class="control-sublabel">Pin 27 — READY</div>
+              </div>
             </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-yellow" onchange="handleToggle('led_yellow', this.checked)"/>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
 
-            <!-- Supabase Config -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title-sm">Supabase Configuration</span>
-                </div>
-                <div class="card-body">
-                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                        <div>
-                            <label
-                                style="font-size:0.78rem;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Supabase
-                                URL</label>
-                            <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co"
-                                style="width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.875rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;"
-                                onfocus="this.style.borderColor='var(--purple)'"
-                                onblur="this.style.borderColor='var(--gray-200)'" />
-                        </div>
-                        <div>
-                            <label
-                                style="font-size:0.78rem;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Anon
-                                Key</label>
-                            <input type="password" id="cfg-key" placeholder="eyJ..."
-                                style="width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.875rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;"
-                                onfocus="this.style.borderColor='var(--purple)'"
-                                onblur="this.style.borderColor='var(--gray-200)'" />
-                        </div>
-                        <button onclick="initSupabase()"
-                            style="padding:9px;background:var(--purple);color:white;border:none;border-radius:9px;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;"
-                            onmouseover="this.style.background='var(--purple-dark)'"
-                            onmouseout="this.style.background='var(--purple)'">
-                            Connect to Supabase
-                        </button>
-                    </div>
-                </div>
+          <div class="control-row" id="row-led-green">
+            <div class="control-row-info">
+              <div class="control-indicator ci-green" id="ci-green"></div>
+              <div>
+                <div class="control-label">Green LED</div>
+                <div class="control-sublabel">Pin 12 — GO</div>
+              </div>
             </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-green" onchange="handleToggle('led_green', this.checked)"/>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+
+          <div class="control-section-label" style="margin-top:0.25rem">Built-in LED</div>
+
+          <div class="control-row" id="row-led-builtin">
+            <div class="control-row-info">
+              <div class="builtin-led-indicator" id="builtin-indicator"></div>
+              <div>
+                <div class="control-label">ESP32 Built-in LED</div>
+                <div class="control-sublabel">GPIO 2 — On-board blue LED</div>
+              </div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-builtin" onchange="handleToggle('led_builtin', this.checked)"/>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
 
         </div>
-
-        <!-- HISTORY LOG -->
-        <div class="card history-panel">
-            <div class="card-header">
-                <span class="card-title-sm">Traffic Light History</span>
-                <div class="log-controls">
-                    <button class="btn-sm" onclick="exportLogs()">Export CSV</button>
-                    <button class="btn-sm danger" onclick="clearLogs()">Clear</button>
-                </div>
-            </div>
-            <div class="log-list" id="log-list">
-                <div class="log-empty">No events recorded yet. Start the traffic light to see logs.</div>
-            </div>
-        </div>
-
+      </div>
     </div>
 
-    <script>
-        // ============================================================
-        // CONFIG — replace with your Supabase credentials or use UI
-        // ============================================================
-        let SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';
-        let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';
-        let supabaseReady = false;
+  </div>
 
-        const TABLE_CONTROL = 'traffic_control';
-        const TABLE_LOGS = 'traffic_logs';
+  <!-- HISTORY LOG -->
+  <div class="card history-panel">
+    <div class="card-header">
+      <span class="card-title-sm">Traffic Light History</span>
+      <div class="log-controls">
+        <button class="btn-sm" onclick="exportLogs()">Export CSV</button>
+        <button class="btn-sm danger" onclick="clearLogs()">Clear</button>
+      </div>
+    </div>
+    <div class="log-list" id="log-list">
+      <div class="log-empty">No events recorded yet. Start the traffic light to see logs.</div>
+    </div>
+  </div>
 
-        // ============================================================
-        // SUPABASE HELPERS
-        // ============================================================
-        async function sbFetch(path, method = 'GET', body = null, prefer = '') {
-            if (!supabaseReady) return null;
-            const headers = {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-            };
-            if (prefer) headers['Prefer'] = prefer;
-            const opts = { method, headers };
-            if (body) opts.body = JSON.stringify(body);
-            try {
-                const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
-                if (!res.ok) {
-                    const err = await res.text();
-                    throw new Error(err);
-                }
-                const text = await res.text();
-                return text ? JSON.parse(text) : null;
-            } catch (e) {
-                console.error('Supabase error:', e);
-                return null;
-            }
-        }
+</div>
 
-        async function initSupabase() {
-            SUPABASE_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/, '');
-            SUPABASE_KEY = document.getElementById('cfg-key').value.trim();
-            if (!SUPABASE_URL || !SUPABASE_KEY) {
-                alert('Please enter your Supabase URL and Anon Key.');
-                return;
-            }
-            setStatus('sb-db', 'connecting', 'Connecting...');
-            try {
-                // Test connection
-                const res = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_CONTROL + '?limit=1', {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                });
-                if (res.status === 401 || res.status === 403) throw new Error('Invalid key');
-                supabaseReady = true;
-                setStatus('sb-db', 'connected', 'Connected');
-                setStatus('sb-wifi', 'connected', 'Online');
-                addLog('system', 'Dashboard connected to Supabase');
-                await ensureTables();
-                await loadLogs();
-                startPolling();
-            } catch (e) {
-                supabaseReady = false;
-                setStatus('sb-db', 'disconnected', 'Failed');
-                addLog('system', 'Supabase connection failed: ' + e.message);
-            }
-        }
+<script>
+// ============================================================
+// SUPABASE CREDENTIALS — replace with your actual values
+// ============================================================
+const SUPABASE_URL = 'https://aatapixarmkgyyyctbmm.supabase.co';  // e.g. https://abcxyz.supabase.co
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8';  // your anon public key
 
-        async function ensureTables() {
-            // Upsert default control row if not exists
-            await sbFetch(TABLE_CONTROL + '?id=eq.1', 'GET');
-            await sbFetch(TABLE_CONTROL, 'POST',
-                { id: 1, mode: 'off', led_red: false, led_yellow: false, led_green: false, led_builtin: false, updated_at: new Date().toISOString() },
-                'resolution=ignore-duplicates'
-            );
-        }
+const TABLE_CONTROL = 'traffic_control';
+const TABLE_LOGS    = 'traffic_logs';
 
-        async function pushControl(update) {
-            update.updated_at = new Date().toISOString();
-            await sbFetch(TABLE_CONTROL + '?id=eq.1', 'PATCH', update);
-        }
+let supabaseReady = false;
 
-        async function pushLog(color, message) {
-            await sbFetch(TABLE_LOGS, 'POST', {
-                color,
-                message,
-                ts: new Date().toISOString()
-            });
-        }
+// ============================================================
+// SUPABASE HELPER
+// ============================================================
+async function sbFetch(path, method = 'GET', body = null, prefer = '') {
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+  };
+  if (prefer) headers['Prefer'] = prefer;
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch(e) {
+    console.error('[Supabase]', e.message);
+    return null;
+  }
+}
 
-        async function loadLogs() {
-            const rows = await sbFetch(TABLE_LOGS + '?order=ts.desc&limit=100');
-            if (!rows) return;
-            logItems = rows.reverse();
-            renderLogs();
-        }
+// ============================================================
+// AUTO-CONNECT ON PAGE LOAD — no button needed
+// ============================================================
+async function autoConnect() {
+  setStatus('sb-wifi', 'connecting', 'Checking...');
+  setStatus('sb-db',   'connecting', 'Connecting...');
 
-        // ============================================================
-        // STATE
-        // ============================================================
-        let mode = 'off';   // 'off' | 'auto' | 'led_red' | 'led_yellow' | 'led_green' | 'led_builtin'
-        let phase = 'off';   // 'red' | 'yellow' | 'green' | 'off'
-        let countdown = 0;
-        let maxTime = 30;
-        let timerInt = null;
-        let pollInt = null;
-        let logItems = [];
+  if (!navigator.onLine) {
+    setStatus('sb-wifi', 'disconnected', 'Offline');
+    setStatus('sb-db',   'disconnected', 'No network');
+    addLog('system', 'No internet connection detected');
+    return;
+  }
+  setStatus('sb-wifi', 'connected', 'Online');
 
-        const PHASES = [
-            { name: 'red', duration: 30, label: 'STOP — Red light', next: 'yellow' },
-            { name: 'yellow', duration: 10, label: 'READY — Yellow light', next: 'green' },
-            { name: 'green', duration: 30, label: 'GO — Green light', next: 'red' },
-        ];
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_CONTROL + '?limit=1', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    // 406 = no rows found but connection works; that's fine
+    if (res.status === 401 || res.status === 403) throw new Error('Invalid API key');
+    if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
 
-        // ============================================================
-        // TOGGLE HANDLER — Single Active Function Rule
-        // ============================================================
-        async function handleToggle(key, value) {
-            // Enforce single active rule: turn off all others
-            if (value) {
-                ['auto', 'led_red', 'led_yellow', 'led_green', 'led_builtin'].forEach(k => {
-                    if (k !== key) {
-                        const el = document.getElementById('toggle-' + k.replace('led_', ''));
-                        if (el) el.checked = false;
-                    }
-                });
-            }
+    supabaseReady = true;
+    setStatus('sb-db', 'connected', 'Connected');
+    addLog('system', 'Dashboard connected to Supabase');
 
-            stopAutoTimer();
+    await ensureControlRow();
+    await loadLogs();
+    startPolling();
+  } catch(e) {
+    supabaseReady = false;
+    setStatus('sb-db', 'disconnected', 'Failed — ' + e.message);
+    addLog('system', 'Supabase error: ' + e.message);
+  }
+}
 
-            const update = {
-                mode: value ? key : 'off',
-                led_red: false,
-                led_yellow: false,
-                led_green: false,
-                led_builtin: false,
-            };
+async function ensureControlRow() {
+  await sbFetch(TABLE_CONTROL, 'POST',
+    { id: 1, mode: 'off', led_red: false, led_yellow: false, led_green: false, led_builtin: false, updated_at: new Date().toISOString() },
+    'resolution=ignore-duplicates'
+  );
+}
 
-            if (value && key !== 'auto') update[key] = true;
-            mode = update.mode;
+async function pushControl(update) {
+  if (!supabaseReady) return;
+  update.updated_at = new Date().toISOString();
+  await sbFetch(TABLE_CONTROL + '?id=eq.1', 'PATCH', update);
+}
 
-            await pushControl(update);
+async function pushLog(color, message) {
+  if (!supabaseReady) return;
+  await sbFetch(TABLE_LOGS, 'POST', { color, message, ts: new Date().toISOString() });
+}
 
-            if (value) {
-                const label = {
-                    auto: 'Automatic cycle started',
-                    led_red: 'Manual: Red LED ON',
-                    led_yellow: 'Manual: Yellow LED ON',
-                    led_green: 'Manual: Green LED ON',
-                    led_builtin: 'Built-in LED ON',
-                }[key] || key + ' activated';
-                addLog(key.includes('red') ? 'red' : key.includes('yellow') ? 'yellow' : key.includes('green') ? 'green' : 'info', label);
-                await pushLog(key.includes('red') ? 'red' : key.includes('yellow') ? 'yellow' : key.includes('green') ? 'green' : 'info', label);
-            } else {
-                addLog('system', 'All functions turned off');
-                await pushLog('system', 'All functions turned off');
-            }
+async function loadLogs() {
+  const rows = await sbFetch(TABLE_LOGS + '?order=ts.desc&limit=100');
+  if (!rows || !Array.isArray(rows)) return;
+  logItems = rows.map(r => ({
+    color: r.color,
+    message: r.message,
+    ts: new Date(r.ts).toLocaleTimeString()
+  })).reverse();
+  renderLogs();
+}
 
-            applyVisualState(update);
+// ============================================================
+// TRAFFIC CYCLE PHASES
+// Correct order: Red(30s) → Yellow(10s) → Green(30s) → Yellow(10s) → repeat
+// ============================================================
+const PHASES = [
+  {
+    name: 'red',
+    bulb: 'red',
+    duration: 30,
+    label: 'STOP',
+    badgeCls: 'red',
+    desc: 'Red light active — STOP',
+    next: 'yellow_before_green'
+  },
+  {
+    name: 'yellow_before_green',
+    bulb: 'yellow',
+    duration: 10,
+    label: 'READY',
+    badgeCls: 'yellow',
+    desc: 'Yellow light — Prepare to GO',
+    next: 'green'
+  },
+  {
+    name: 'green',
+    bulb: 'green',
+    duration: 30,
+    label: 'GO',
+    badgeCls: 'green',
+    desc: 'Green light active — GO',
+    next: 'yellow_before_red'
+  },
+  {
+    name: 'yellow_before_red',
+    bulb: 'yellow',
+    duration: 10,
+    label: 'READY',
+    badgeCls: 'yellow',
+    desc: 'Yellow light — Prepare to STOP',
+    next: 'red'
+  },
+];
 
-            if (value && key === 'auto') {
-                startAutoTimer();
-            }
-        }
+let mode      = 'off';
+let phase     = 'off';
+let countdown = 0;
+let maxTime   = 30;
+let timerInt  = null;
+let pollInt   = null;
+let logItems  = [];
 
-        // ============================================================
-        // AUTO TIMER
-        // ============================================================
-        function startAutoTimer() {
-            phase = 'red';
-            const p = PHASES.find(x => x.name === 'red');
-            countdown = p.duration;
-            maxTime = p.duration;
-            updateCountdownUI();
-            applyPhase('red');
-            timerInt = setInterval(tickTimer, 1000);
-        }
+// ============================================================
+// TOGGLE HANDLER — Single Active Function Rule
+// ============================================================
+async function handleToggle(key, value) {
+  // Turn off all other toggles (single active rule)
+  if (value) {
+    ['auto', 'led_red', 'led_yellow', 'led_green', 'led_builtin'].forEach(k => {
+      if (k !== key) {
+        const el = document.getElementById('toggle-' + k.replace('led_', ''));
+        if (el) el.checked = false;
+      }
+    });
+  }
 
-        function stopAutoTimer() {
-            if (timerInt) { clearInterval(timerInt); timerInt = null; }
-            phase = 'off';
-            countdown = 0;
-            updateCountdownUI();
-            allBulbsOff();
-            document.getElementById('phase-badge').className = 'phase-badge off';
-            document.getElementById('phase-badge').textContent = 'OFF';
-            document.getElementById('countdown-phase-label').textContent = 'Traffic light is off';
-        }
+  // Always stop any running auto timer first
+  stopAutoTimer();
 
-        function tickTimer() {
-            countdown--;
-            if (countdown <= 0) {
-                const cur = PHASES.find(x => x.name === phase);
-                phase = cur.next;
-                const next = PHASES.find(x => x.name === phase);
-                countdown = next.duration;
-                maxTime = next.duration;
-                applyPhase(phase);
-                const logMsg = `Phase changed to ${phase.toUpperCase()} (${next.duration}s)`;
-                addLog(phase, logMsg);
-                pushLog(phase, logMsg);
-                pushControl({
-                    mode: 'auto',
-                    led_red: phase === 'red',
-                    led_yellow: phase === 'yellow',
-                    led_green: phase === 'green',
-                    led_builtin: false,
-                });
-            }
-            updateCountdownUI();
-        }
+  const update = {
+    mode:        value ? key : 'off',
+    led_red:     false,
+    led_yellow:  false,
+    led_green:   false,
+    led_builtin: false,
+  };
+  if (value && key !== 'auto') update[key] = true;
+  mode = update.mode;
 
-        function applyPhase(p) {
-            allBulbsOff();
-            const el = document.getElementById('bulb-' + p);
-            if (el) {
-                el.className = 'tl-bulb ' + p + '-on';
-            }
-            const badge = document.getElementById('phase-badge');
-            badge.className = 'phase-badge ' + p;
-            badge.textContent = p === 'red' ? 'STOP' : p === 'yellow' ? 'READY' : 'GO';
+  // Push off state immediately, auto will push its own state right after
+  if (!(value && key === 'auto')) {
+    await pushControl(update);
+  }
 
-            const ringColor = p === 'red' ? '#ef4444' : p === 'yellow' ? '#f59e0b' : '#22c55e';
-            document.getElementById('ring-progress').style.stroke = ringColor;
+  // Log
+  if (value) {
+    const labelMap = {
+      auto:        'Automatic cycle started — RED first',
+      led_red:     'Manual: Red LED ON',
+      led_yellow:  'Manual: Yellow LED ON',
+      led_green:   'Manual: Green LED ON',
+      led_builtin: 'Built-in LED ON',
+    };
+    const colorMap = {
+      auto: 'info', led_red: 'red', led_yellow: 'yellow', led_green: 'green', led_builtin: 'info'
+    };
+    const msg = labelMap[key] || key + ' activated';
+    const col = colorMap[key] || 'info';
+    addLog(col, msg);
+    pushLog(col, msg);
+  } else {
+    addLog('system', 'All functions turned off');
+    pushLog('system', 'All functions turned off');
+  }
 
-            const labels = { red: 'Red light active — STOP', yellow: 'Yellow light active — READY', green: 'Green light active — GO' };
-            document.getElementById('countdown-phase-label').textContent = labels[p] || '';
-        }
+  applyVisualState(update);
 
-        function updateCountdownUI() {
-            const numEl = document.getElementById('countdown-num');
-            const ring = document.getElementById('ring-progress');
-            const circ = 2 * Math.PI * 45;
+  if (value && key === 'auto') {
+    startAutoTimer();
+  }
+}
 
-            if (countdown <= 0 || phase === 'off') {
-                numEl.textContent = '--';
-                ring.style.strokeDashoffset = circ;
-                return;
-            }
+// ============================================================
+// AUTO TIMER — RED lights up immediately on start
+// ============================================================
+function startAutoTimer() {
+  phase     = 'red';
+  const p   = PHASES.find(x => x.name === 'red');
+  countdown = p.duration;
+  maxTime   = p.duration;
 
-            numEl.textContent = String(countdown).padStart(2, '0');
-            const pct = countdown / maxTime;
-            ring.style.strokeDasharray = circ;
-            ring.style.strokeDashoffset = circ * (1 - pct);
-        }
+  // Immediately light RED and push to Supabase
+  applyPhase('red');
+  pushControl({
+    mode:        'auto',
+    led_red:     true,
+    led_yellow:  false,
+    led_green:   false,
+    led_builtin: false,
+  });
 
-        // ============================================================
-        // VISUAL STATE
-        // ============================================================
-        function allBulbsOff() {
-            document.getElementById('bulb-red').className = 'tl-bulb red-off';
-            document.getElementById('bulb-yellow').className = 'tl-bulb yellow-off';
-            document.getElementById('bulb-green').className = 'tl-bulb green-off';
-        }
+  updateCountdownUI();
+  timerInt = setInterval(tickTimer, 1000);
+}
 
-        function applyVisualState(s) {
-            allBulbsOff();
-            const bi = document.getElementById('builtin-indicator');
-            bi.className = 'builtin-led-indicator';
+function stopAutoTimer() {
+  if (timerInt) { clearInterval(timerInt); timerInt = null; }
+  phase     = 'off';
+  countdown = 0;
+  updateCountdownUI();
+  allBulbsOff();
+  document.getElementById('phase-badge').className     = 'phase-badge off';
+  document.getElementById('phase-badge').textContent   = 'OFF';
+  document.getElementById('countdown-phase-label').textContent = 'Traffic light is off';
+  document.getElementById('ring-progress').style.stroke = 'var(--purple-light)';
+}
 
-            if (s.led_red) { document.getElementById('bulb-red').className = 'tl-bulb red-on'; }
-            if (s.led_yellow) { document.getElementById('bulb-yellow').className = 'tl-bulb yellow-on'; }
-            if (s.led_green) { document.getElementById('bulb-green').className = 'tl-bulb green-on'; }
-            if (s.led_builtin) { bi.className = 'builtin-led-indicator on'; }
+function tickTimer() {
+  countdown--;
+  if (countdown <= 0) {
+    const cur  = PHASES.find(x => x.name === phase);
+    const next = PHASES.find(x => x.name === cur.next);
+    phase     = next.name;
+    countdown = next.duration;
+    maxTime   = next.duration;
 
-            // Active row highlight
-            ['auto', 'red', 'yellow', 'green', 'builtin'].forEach(k => {
-                const row = document.getElementById('row-led-' + k) || document.getElementById('row-tl-auto');
-                if (row) row.classList.remove('active-mode');
-            });
+    applyPhase(phase);
 
-            const modeMap = {
-                auto: 'row-tl-auto',
-                led_red: 'row-led-red',
-                led_yellow: 'row-led-yellow',
-                led_green: 'row-led-green',
-                led_builtin: 'row-led-builtin',
-            };
-            if (s.mode && s.mode !== 'off' && modeMap[s.mode]) {
-                document.getElementById(modeMap[s.mode])?.classList.add('active-mode');
-            }
+    const logMsg = 'Phase → ' + next.label + ' (' + next.bulb.toUpperCase() + ', ' + next.duration + 's)';
+    addLog(next.bulb, logMsg);
+    pushLog(next.bulb, logMsg);
 
-            // Indicator dots
-            const setCI = (id, on) => {
-                const el = document.getElementById(id);
-                if (el) { if (on) el.classList.add('on'); else el.classList.remove('on'); }
-            };
-            setCI('ci-auto', s.mode === 'auto');
-            setCI('ci-red', s.led_red);
-            setCI('ci-yellow', s.led_yellow);
-            setCI('ci-green', s.led_green);
-        }
+    pushControl({
+      mode:        'auto',
+      led_red:     next.bulb === 'red',
+      led_yellow:  next.bulb === 'yellow',
+      led_green:   next.bulb === 'green',
+      led_builtin: false,
+    });
+  }
+  updateCountdownUI();
+}
 
-        // ============================================================
-        // POLLING (ESP32 heartbeat detection + control sync)
-        // ============================================================
-        let lastEspHeartbeat = null;
+// ============================================================
+// PHASE VISUALS
+// ============================================================
+function applyPhase(phaseName) {
+  const p = PHASES.find(x => x.name === phaseName);
+  if (!p) return;
 
-        async function startPolling() {
-            if (pollInt) clearInterval(pollInt);
-            pollInt = setInterval(async () => {
-                const rows = await sbFetch(TABLE_CONTROL + '?id=eq.1');
-                if (rows && rows[0]) {
-                    const r = rows[0];
-                    // ESP32 heartbeat check (if ESP32 writes esp_heartbeat column)
-                    if (r.esp_heartbeat) {
-                        const diff = Date.now() - new Date(r.esp_heartbeat).getTime();
-                        if (diff < 10000) {
-                            setStatus('sb-esp', 'connected', 'Online');
-                            lastEspHeartbeat = r.esp_heartbeat;
-                        } else {
-                            setStatus('sb-esp', 'disconnected', 'No heartbeat');
-                        }
-                    }
-                }
-            }, 5000);
-        }
+  allBulbsOff();
+  document.getElementById('bulb-' + p.bulb).className = 'tl-bulb ' + p.bulb + '-on';
 
-        // ============================================================
-        // LOGS
-        // ============================================================
-        function addLog(color, message) {
-            const now = new Date();
-            const ts = now.toLocaleTimeString();
-            logItems.push({ color, message, ts });
-            renderLogs();
-        }
+  const badge = document.getElementById('phase-badge');
+  badge.className   = 'phase-badge ' + p.badgeCls;
+  badge.textContent = p.label;
 
-        function renderLogs() {
-            const list = document.getElementById('log-list');
-            if (logItems.length === 0) {
-                list.innerHTML = '<div class="log-empty">No events recorded yet. Start the traffic light to see logs.</div>';
-                return;
-            }
-            list.innerHTML = [...logItems].reverse().map(l => `
+  const ringColors = { red: '#ef4444', yellow: '#f59e0b', green: '#22c55e' };
+  document.getElementById('ring-progress').style.stroke = ringColors[p.bulb];
+  document.getElementById('countdown-phase-label').textContent = p.desc;
+}
+
+function updateCountdownUI() {
+  const numEl = document.getElementById('countdown-num');
+  const ring  = document.getElementById('ring-progress');
+  const circ  = 2 * Math.PI * 45;
+
+  if (countdown <= 0 || phase === 'off') {
+    numEl.textContent = '--';
+    ring.style.strokeDasharray  = circ;
+    ring.style.strokeDashoffset = circ;
+    return;
+  }
+
+  numEl.textContent = String(countdown).padStart(2, '0');
+  const pct = countdown / maxTime;
+  ring.style.strokeDasharray  = circ;
+  ring.style.strokeDashoffset = circ * (1 - pct);
+}
+
+function allBulbsOff() {
+  document.getElementById('bulb-red').className    = 'tl-bulb red-off';
+  document.getElementById('bulb-yellow').className = 'tl-bulb yellow-off';
+  document.getElementById('bulb-green').className  = 'tl-bulb green-off';
+}
+
+function applyVisualState(s) {
+  allBulbsOff();
+  const bi = document.getElementById('builtin-indicator');
+  bi.className = 'builtin-led-indicator';
+
+  if (s.led_red)     document.getElementById('bulb-red').className    = 'tl-bulb red-on';
+  if (s.led_yellow)  document.getElementById('bulb-yellow').className = 'tl-bulb yellow-on';
+  if (s.led_green)   document.getElementById('bulb-green').className  = 'tl-bulb green-on';
+  if (s.led_builtin) bi.className = 'builtin-led-indicator on';
+
+  document.querySelectorAll('.control-row').forEach(r => r.classList.remove('active-mode'));
+  const modeMap = {
+    auto:        'row-tl-auto',
+    led_red:     'row-led-red',
+    led_yellow:  'row-led-yellow',
+    led_green:   'row-led-green',
+    led_builtin: 'row-led-builtin',
+  };
+  if (s.mode && s.mode !== 'off' && modeMap[s.mode]) {
+    document.getElementById(modeMap[s.mode])?.classList.add('active-mode');
+  }
+
+  const setCI = (id, on) => document.getElementById(id)?.classList.toggle('on', !!on);
+  setCI('ci-auto',   s.mode === 'auto');
+  setCI('ci-red',    s.led_red);
+  setCI('ci-yellow', s.led_yellow);
+  setCI('ci-green',  s.led_green);
+}
+
+// ============================================================
+// POLLING — ESP32 heartbeat
+// ============================================================
+function startPolling() {
+  if (pollInt) clearInterval(pollInt);
+  pollInt = setInterval(async () => {
+    const rows = await sbFetch(TABLE_CONTROL + '?id=eq.1');
+    if (!rows || !rows[0]) return;
+    const r = rows[0];
+    if (r.esp_heartbeat) {
+      const diff = Date.now() - new Date(r.esp_heartbeat).getTime();
+      if (diff < 12000) {
+        setStatus('sb-esp', 'connected', 'Online');
+      } else if (diff < 60000) {
+        setStatus('sb-esp', 'connecting', 'Idle (' + Math.round(diff / 1000) + 's ago)');
+      } else {
+        setStatus('sb-esp', 'disconnected', 'Offline');
+      }
+    } else {
+      setStatus('sb-esp', 'connecting', 'No heartbeat yet');
+    }
+  }, 5000);
+}
+
+// ============================================================
+// LOGS
+// ============================================================
+function addLog(color, message) {
+  logItems.push({ color, message, ts: new Date().toLocaleTimeString() });
+  renderLogs();
+}
+
+function renderLogs() {
+  const list = document.getElementById('log-list');
+  if (logItems.length === 0) {
+    list.innerHTML = '<div class="log-empty">No events recorded yet. Start the traffic light to see logs.</div>';
+    return;
+  }
+  list.innerHTML = [...logItems].reverse().map(l => `
     <div class="log-item">
       <div class="log-dot ${l.color}"></div>
       <span class="log-text">${l.message}</span>
       <span class="log-time">${l.ts}</span>
     </div>
   `).join('');
-        }
+}
 
-        function clearLogs() {
-            if (!confirm('Clear all local log entries?')) return;
-            logItems = [];
-            renderLogs();
-        }
+function clearLogs() {
+  if (!confirm('Clear all local log entries?')) return;
+  logItems = [];
+  renderLogs();
+}
 
-        function exportLogs() {
-            if (logItems.length === 0) { alert('No logs to export.'); return; }
-            const csv = ['Timestamp,Color,Message', ...logItems.map(l => `"${l.ts}","${l.color}","${l.message}"`)].join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = Object.assign(document.createElement('a'), { href: url, download: 'traffic_logs.csv' });
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+function exportLogs() {
+  if (logItems.length === 0) { alert('No logs to export.'); return; }
+  const csv = ['Timestamp,Color,Message', ...logItems.map(l => `"${l.ts}","${l.color}","${l.message}"`)].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: 'traffic_logs.csv' });
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-        // ============================================================
-        // STATUS HELPERS
-        // ============================================================
-        function setStatus(key, state, text) {
-            const dot = document.getElementById('sb-' + key + '-dot');
-            const span = document.getElementById('sb-' + key + '-text');
-            if (dot) dot.className = 'status-dot ' + state;
-            if (span) span.textContent = text;
-        }
+// ============================================================
+// STATUS HELPERS
+// ============================================================
+function setStatus(key, state, text) {
+  const dot  = document.getElementById('sb-' + key + '-dot');
+  const span = document.getElementById('sb-' + key + '-text');
+  if (dot)  dot.className    = 'status-dot ' + state;
+  if (span) span.textContent = text;
+}
 
-        // Clock
-        setInterval(() => {
-            document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
-        }, 1000);
+// ============================================================
+// INIT
+// ============================================================
+setInterval(() => {
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
+}, 1000);
 
-        // Initial ring state
-        document.getElementById('ring-progress').style.strokeDasharray = 2 * Math.PI * 45;
-        document.getElementById('ring-progress').style.strokeDashoffset = 2 * Math.PI * 45;
-    </script>
+const _circ = 2 * Math.PI * 45;
+document.getElementById('ring-progress').style.strokeDasharray  = _circ;
+document.getElementById('ring-progress').style.strokeDashoffset = _circ;
+
+// Auto-connect on load — no manual button needed
+window.addEventListener('load', autoConnect);
+window.addEventListener('online',  () => { setStatus('sb-wifi', 'connected',    'Online');  autoConnect(); });
+window.addEventListener('offline', () => { setStatus('sb-wifi', 'disconnected', 'Offline'); setStatus('sb-db', 'disconnected', 'No network'); });
+</script>
 </body>
-
 </html>
