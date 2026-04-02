@@ -40,7 +40,6 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
         }
 
         /* Background pattern */
@@ -246,6 +245,46 @@
             color: var(--purple-light);
         }
 
+        /* Developer footer */
+        .developer-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-100);
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .developer-footer .heart {
+            color: #ef4444;
+            display: inline-block;
+            animation: heartBeat 1.2s ease-in-out infinite;
+        }
+
+        @keyframes heartBeat {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.12);
+            }
+        }
+
+        .developer-footer a {
+            color: var(--purple);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .developer-footer a:hover {
+            color: var(--purple-dark);
+            text-decoration: underline;
+        }
+
         @media (max-width: 540px) {
             .cards {
                 grid-template-columns: 1fr;
@@ -298,6 +337,11 @@
         </div>
 
         <p class="footer-note">Powered by <span>ESP32</span> + <span>Supabase</span> realtime</p>
+
+        <div class="developer-footer">
+            <span>Developed with <span class="heart">❤️</span> by <a href="https://github.com/MissViolet88/LEDandTEMP" target="_blank">Miss Violet</a> | IoT
+                Innovation Project</span>
+        </div>
     </div>
 </body>
 
