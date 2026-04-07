@@ -32,8 +32,8 @@ const char* ssid = "FREE";
 const char* password = "123456789";
 
 // ---- SUPABASE ----
-const char* supabaseUrl = "https://aatapixarmkgyyyctbmm.supabase.co";
-const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdGFwaXhhcm1rZ3l5eWN0Ym1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTA0MjIsImV4cCI6MjA5MDE4NjQyMn0.r6-kIZEgDO9A2GAGDs1JRXCNVFBPLk1Nut5XPCVxQf8";
+const char* supabaseUrl = "https://ubuylcmjaswfsphytzkr.supabase.co";
+const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidXlsY21qYXN3ZnNwaHl0emtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMjU5MjAsImV4cCI6MjA5MDYwMTkyMH0.-Gl_YIGZJB0XZcKnqAvPRnPhc9Ks4gxz2z42xlRtik8";
 
 // ---- TRAFFIC LIGHT PINS ----
 #define PIN_GREEN 12
